@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/navigation_orders"
+        android:title="Заказы"
+        android:icon="@android:drawable/ic_menu_edit" />
+    <item
+        android:id="@+id/navigation_my_orders"
+        android:title="Мои заказы"
+        android:icon="@android:drawable/ic_menu_agenda" />
+    <item
+        android:id="@+id/navigation_statistics"
+        android:title="Статистика"
+        android:icon="@android:drawable/ic_menu_info_details" />
+    <item
+        android:id="@+id/navigation_profile"
+        android:title="Профиль"
+        android:icon="@android:drawable/ic_menu_manage" />
+</menu>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="@drawable/bg_gradient"
+    android:padding="32dp">
+
+    <ImageView
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:src="@drawable/ic_premium"
+        app:tint="@color/orange_accent"
+        android:layout_marginBottom="24dp"
+        android:contentDescription="@null" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Премиум аккаунт"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:textColor="@color/orange_accent"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Доступ к закрытым разделам, схемам, чату и приоритет заявок"
+        android:textSize="16sp"
+        android:textColor="#BDBDBD"
+        android:gravity="center"
+        android:layout_marginBottom="32dp" />
+
+    <TextView
+        android:id="@+id/textPremiumStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Статус: Бесплатный"
+        android:textSize="18sp"
+        android:textColor="#FFFFFF"
+        android:layout_marginBottom="24dp" />
+
+    <Button
+        android:id="@+id/buttonBuyPremium"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Купить Премиум (заглушка)"
+        android:textSize="18sp"
+        android:backgroundTint="@color/orange_accent"
+        android:textColor="#1E1E1E"
+        android:paddingVertical="12dp" />
+</LinearLayout>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_verification"
+        android:title="Верификация"
+        android:icon="@android:drawable/ic_menu_edit" />
+    <item
+        android:id="@+id/nav_masters"
+        android:title="Мастера"
+        android:icon="@android:drawable/ic_menu_agenda" />
+    <item
+        android:id="@+id/nav_orders"
+        android:title="Заказы"
+        android:icon="@android:drawable/ic_menu_info_details" />
+    <item
+        android:id="@+id/nav_create_order"
+        android:title="Создать заказ"
+        android:icon="@android:drawable/ic_menu_add" />
+    <item
+        android:id="@+id/nav_stats"
+        android:title="Статистика"
+        android:icon="@android:drawable/ic_menu_view" />
+</menu>

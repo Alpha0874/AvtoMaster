@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_dark">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center_horizontal">
+
+        <ImageView
+            android:id="@+id/imageProfile"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:scaleType="centerCrop"
+            android:contentDescription="@string/avatar" />
+
+        <TextView
+            android:id="@+id/textMasterName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/textServiceName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="@color/orange_accent"
+            android:layout_marginBottom="4dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/textMasterSpecialty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/textRating"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="20sp"
+            android:textColor="@color/orange_accent"
+            android:layout_marginBottom="24dp" />
+
+        <Button
+            android:id="@+id/buttonEditProfile"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Редактировать профиль"
+            android:backgroundTint="@color/orange_accent"
+            android:textColor="@color/background_dark"
+            android:layout_marginBottom="16dp" />
+
+        <Button
+            android:id="@+id/buttonForum"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Форум знаний"
+            android:backgroundTint="@color/orange_accent"
+            android:textColor="@color/background_dark"
+            android:layout_marginBottom="16dp" />
+
+        <Button
+            android:id="@+id/buttonChangeRole"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Сменить роль"
+            android:backgroundTint="@color/button_secondary"
+            android:textColor="@color/text_secondary" />
+
+    </LinearLayout>
+</ScrollView>

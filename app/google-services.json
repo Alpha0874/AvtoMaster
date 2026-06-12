@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1026888483092",
+    "project_id": "avtomaster-30d32",
+    "storage_bucket": "avtomaster-30d32.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1026888483092:android:67fb306d8be0df5181c201",
+        "android_client_info": {
+          "package_name": "com.avtoforward.automaster"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDo41pjdHh_16QS4kl3VrrDkS34iJjgHsA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

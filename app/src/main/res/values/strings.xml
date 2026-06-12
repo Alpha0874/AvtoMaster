@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">АвтоТехПомощь</string>
+    <string name="avatar">Аватар</string>
+    <string name="topics_format">Темы: %s</string>
+    <string name="no_topics">Нет тем в этой подкатегории</string>
+    <string name="error_load_topics">Ошибка загрузки тем</string>
+    <string name="new_topic">Новая тема</string>
+    <string name="enter_topic_title">Введите название темы</string>
+    <string name="create">Создать</string>
+    <string name="cancel">Отмена</string>
+    <string name="enter_title">Введите название</string>
+    <string name="auth_error">Ошибка авторизации</string>
+    <string name="topic_created">Тема создана</string>
+    <string name="error_create_topic">Ошибка создания темы</string>
+    <string name="message_hint">Введите сообщение...</string>
+    <string name="attach_image">Прикрепить изображение</string>
+    <string name="send">Отправить</string>
+
+    <!-- Массивы для спиннеров -->
+    <string-array name="cities_array">
+        <item>Москва</item>
+        <item>Краснодар</item>
+    </string-array>
+
+    <string-array name="vehicle_types_array">
+        <item>Легковой</item>
+        <item>Лёгкий коммерческий</item>
+        <item>Грузовой от 5т</item>
+        <item>Спецтехника</item>
+    </string-array>
+
+    <string-array name="master_types_array">
+        <item>Автоэлектрик</item>
+        <item>Автомеханик</item>
+        <item>Гидравлик/Пневматик</item>
+        <item>Шиномонтаж</item>
+        <item>Эвакуатор</item>
+    </string-array>
+
+    <string-array name="payment_methods_array">
+        <item>Наличные</item>
+        <item>Карта</item>
+        <item>Безналичный расчёт</item>
+    </string-array>
+
+    <string-array name="master_statuses">
+        <item>Не выбран</item>
+        <item>Начинающий</item>
+        <item>Опытный</item>
+        <item>Профессионал</item>
+        <item>Эксперт</item>
+    </string-array>
+
+    <string name="stat_value">%d</string>
+
+    <!-- Подкатегории для форума -->
+    <string-array name="subcategories_electrician">
+        <item>Легковые автомобили</item>
+        <item>Грузовые автомобили</item>
+        <item>Мототехника</item>
+        <item>Спецтехника</item>
+    </string-array>
+
+    <string-array name="subcategories_mechanic">
+        <item>Двигатель</item>
+        <item>Трансмиссия</item>
+        <item>Подвеска</item>
+        <item>Тормозная система</item>
+        <item>Рулевое управление</item>
+    </string-array>
+</resources>

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Статистика"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Мастера -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Мастера" android:textStyle="bold" android:layout_marginTop="8dp"/>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginTop="4dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:text="Всего мастеров:" />
+            <TextView android:id="@+id/textTotalMasters" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="0" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:text="Онлайн в приложении:" />
+            <TextView android:id="@+id/textOnlineMasters" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="0" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:text="Сейчас на форуме:" />
+            <TextView android:id="@+id/textMastersOnForum" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="0" />
+        </LinearLayout>
+
+        <!-- Клиенты -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Клиенты" android:textStyle="bold" android:layout_marginTop="16dp"/>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginTop="4dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:text="Всего клиентов:" />
+            <TextView android:id="@+id/textTotalClients" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="0" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:text="Онлайн в приложении:" />
+            <TextView android:id="@+id/textOnlineClients" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="0" />
+        </LinearLayout>
+
+        <!-- Заказы -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Заказы" android:textStyle="bold" android:layout_marginTop="16dp"/>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginTop="4dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:text="Новые активные:" />
+            <TextView android:id="@+id/textNewOrders" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="0" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:text="Всего завершённых:" />
+            <TextView android:id="@+id/textCompletedOrders" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="0" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

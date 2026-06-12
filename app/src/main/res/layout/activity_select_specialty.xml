@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:gravity="center"
+    android:background="@color/background_dark">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Выберите специализацию"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:textColor="@color/orange_accent"
+        android:layout_marginBottom="24dp" />
+
+    <RadioGroup
+        android:id="@+id/radioGroupSpecialty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp">
+
+        <RadioButton
+            android:id="@+id/radioAutoElectrician"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Автоэлектрик"
+            android:textColor="@color/text_primary"
+            android:padding="8dp" />
+
+        <RadioButton
+            android:id="@+id/radioAutoMechanic"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Автомеханик"
+            android:textColor="@color/text_primary"
+            android:padding="8dp" />
+
+        <RadioButton
+            android:id="@+id/radioHydraulic"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Гидравлик"
+            android:textColor="@color/text_primary"
+            android:padding="8dp" />
+    </RadioGroup>
+
+    <Button
+        android:id="@+id/buttonSaveSpecialty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Сохранить"
+        android:backgroundTint="@color/orange_accent"
+        android:textColor="#1E1E1E" />
+</LinearLayout>

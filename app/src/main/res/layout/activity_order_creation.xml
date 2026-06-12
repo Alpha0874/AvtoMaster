@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Создание заказа"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Контактные данные -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Контактные данные" android:textStyle="bold" android:layout_marginTop="8dp"/>
+        <EditText android:id="@+id/editClientName" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:hint="Имя заказчика" android:inputType="textPersonName"/>
+        <EditText android:id="@+id/editClientPhone" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:hint="Телефон" android:inputType="phone"/>
+
+        <!-- Адрес -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Адрес" android:textStyle="bold" android:layout_marginTop="8dp"/>
+        <Spinner android:id="@+id/spinnerCity" android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+        <EditText android:id="@+id/editAddress" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:hint="Улица, дом" android:inputType="textPostalAddress"/>
+
+        <LinearLayout android:id="@+id/layoutMkadDistance" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
+            <EditText android:id="@+id/editDistanceMkad" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:hint="Километров за МКАД"
+                android:inputType="number" android:text="0"/>
+        </LinearLayout>
+
+        <!-- Транспорт -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Транспортное средство" android:textStyle="bold" android:layout_marginTop="8dp"/>
+        <EditText android:id="@+id/editVehicleBrand" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:hint="Марка" android:inputType="text"/>
+        <EditText android:id="@+id/editVehicleModel" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:hint="Модель" android:inputType="text"/>
+        <EditText android:id="@+id/editVehicleYear" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:hint="Год выпуска" android:inputType="number"/>
+        <Spinner android:id="@+id/spinnerVehicleType" android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <!-- Услуга -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Кто нужен" android:textStyle="bold" android:layout_marginTop="8dp"/>
+        <Spinner android:id="@+id/spinnerMasterType" android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <!-- Описание -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Описание проблемы" android:textStyle="bold" android:layout_marginTop="8dp"/>
+        <EditText android:id="@+id/editProblemDescription" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:hint="Что случилось?" android:inputType="textMultiLine"
+            android:minLines="3"/>
+
+        <EditText android:id="@+id/editComment" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:hint="Комментарий к заказу (необязательно)" android:inputType="text"/>
+
+        <!-- Способ оплаты -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Способ оплаты" android:textStyle="bold" android:layout_marginTop="8dp"/>
+        <Spinner android:id="@+id/spinnerPaymentMethod" android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <CheckBox android:id="@+id/checkPriceByAgreement" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="Цена по договорённости"
+            android:layout_marginTop="8dp"/>
+
+        <!-- Цена не показывается -->
+
+        <Button android:id="@+id/buttonCreateOrder" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="Создать заказ" android:layout_marginTop="16dp"/>
+    </LinearLayout>
+</ScrollView>

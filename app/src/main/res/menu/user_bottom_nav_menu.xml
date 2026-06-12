@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_profile"
+        android:title="Профиль"
+        android:icon="@drawable/ic_role_user" />
+    <item
+        android:id="@+id/action_my_orders"
+        android:title="Мои заказы"
+        android:icon="@drawable/ic_service_autoelectric" />
+</menu>
