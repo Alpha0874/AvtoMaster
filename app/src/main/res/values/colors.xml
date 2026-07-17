@@ -11,14 +11,21 @@
     <color name="bottom_nav_inactive_color">#AAFFFFFF</color>
 
     <color name="background_dark">#121212</color>
+    <color name="background_light">#F5F5F5</color>
     <color name="text_primary">#FFFFFF</color>
+    <color name="text_primary_light">#000000</color>
     <color name="text_secondary">#B3B3B3</color>
+    <color name="text_secondary_light">#666666</color>
     <color name="card_dark">#1E1E1E</color>
+    <color name="card_light">#FFFFFF</color>
     <color name="card_stroke">#333333</color>
     <color name="button_secondary">#333333</color>
     <color name="orange_accent">#FF9800</color>
-    <color name="switch_thumb_on">#4CAF50</color>   <!-- зелёный -->
-    <color name="switch_thumb_off">#F44336</color>  <!-- красный -->
-    <color name="switch_track_on">#81C784</color>   <!-- светлозелёный трек -->
-    <color name="switch_track_off">#EF9A9A</color>  <!-- светлокрасный трек -->
+    <color name="orange_accent_dark">#E68900</color>
+    <color name="switch_thumb_on">#4CAF50</color>
+    <color name="switch_thumb_off">#F44336</color>
+    <color name="switch_track_on">#81C784</color>
+    <color name="switch_track_off">#EF9A9A</color>
+    <color name="toolbar_dark">#1A1A1A</color>      <!-- 👈 ДОБАВЛЕНО -->
+    <color name="toolbar_light">#FF9800</color>    <!-- 👈 ДОБАВЛЕНО -->
 </resources>

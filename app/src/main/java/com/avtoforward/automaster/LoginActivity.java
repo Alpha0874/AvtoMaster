@@ -49,6 +49,7 @@ public class LoginActivity extends AppCompatActivity {
                     } else if ("master".equals(role)) {
                         startActivity(new Intent(LoginActivity.this, MasterActivity.class));
                     } else {
+                        // клиент → MainActivity (старый дизайн с услугами)
                         startActivity(new Intent(LoginActivity.this, MainActivity.class));
                     }
                     finish();

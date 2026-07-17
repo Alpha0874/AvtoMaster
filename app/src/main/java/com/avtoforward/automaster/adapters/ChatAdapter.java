@@ -16,10 +16,7 @@ import com.avtoforward.automaster.models.ChatMessage;
 import com.bumptech.glide.Glide;
 import com.github.chrisbanes.photoview.PhotoView;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
 public class ChatAdapter extends ArrayAdapter<ChatMessage> {
 
@@ -27,7 +24,6 @@ public class ChatAdapter extends ArrayAdapter<ChatMessage> {
     private final List<ChatMessage> messages;
     private final String currentUserId;
     private final OnMessageActionListener listener;
-    private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault());
 
     public interface OnMessageActionListener {
         void onEditMessage(ChatMessage message);
@@ -63,17 +59,12 @@ public class ChatAdapter extends ArrayAdapter<ChatMessage> {
         }
         textAuthor.setText(author);
 
-        // Время
+        // Время — просто показываем строку, которую передали
         if (message.getCreated() != null && !message.getCreated().isEmpty()) {
-            try {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
-                Date date = sdf.parse(message.getCreated());
-                textTime.setText(dateFormat.format(date));
-            } catch (Exception e) {
-                textTime.setText("");
-            }
+            textTime.setText(message.getCreated());
+            textTime.setVisibility(View.VISIBLE);
         } else {
-            textTime.setText("");
+            textTime.setVisibility(View.GONE);
         }
 
         // Текст

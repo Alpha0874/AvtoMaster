@@ -1,59 +1,43 @@
 package com.avtoforward.automaster;
 
 import android.os.Bundle;
-import android.widget.ListView;
-import android.widget.Toast;
+import android.view.MenuItem;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import java.util.ArrayList;
-import java.util.List;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
+
+import com.avtoforward.automaster.fragments.ActiveOrdersFragment;
 
 public class ActiveOrdersActivity extends AppCompatActivity {
-    private ListView listView;
-    private OrderAdapter adapter;
-    private List<com.avtoforward.automaster.Order> orderList = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_orders_list);
-        Toolbar toolbar = findViewById(R.id.toolbar);
+        setContentView(R.layout.activity_active_orders);
+
+        Toolbar toolbar = findViewById(R.id.toolbarActiveOrders);
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setTitle("Активные заказы");
         }
-        listView = findViewById(R.id.listOrders);
-        loadOrders();
-    }
 
-    private void loadOrders() {
-        String masterId = PocketBaseClient.getCurrentUserId();
-        if (masterId == null) {
-            Toast.makeText(this, "Ошибка авторизации", Toast.LENGTH_SHORT).show();
-            finish();
-            return;
+        if (savedInstanceState == null) {
+            Fragment fragment = new ActiveOrdersFragment();
+            FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+            transaction.replace(R.id.containerActiveOrders, fragment);
+            transaction.commit();
         }
-        new Thread(() -> {
-            List<com.avtoforward.automaster.Order> allOrders = PocketBaseClient.getMyOrders(masterId);
-            List<com.avtoforward.automaster.Order> activeOrders = new ArrayList<>();
-            for (com.avtoforward.automaster.Order order : allOrders) {
-                if ("accepted".equals(order.getStatus())) {
-                    activeOrders.add(order);
-                }
-            }
-            runOnUiThread(() -> {
-                orderList.clear();
-                orderList.addAll(activeOrders);
-                adapter = new OrderAdapter(this, orderList, false, null);
-                listView.setAdapter(adapter);
-            });
-        }).start();
     }
 
     @Override
-    public boolean onSupportNavigateUp() {
-        finish();
-        return true;
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            onBackPressed();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 }

@@ -21,14 +21,13 @@
             android:textColor="@color/orange_accent"
             android:layout_marginBottom="24dp" />
 
-        <!-- Поле Email -->
+        <!-- Email -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Email"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:layout_marginBottom="12dp">
-
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/editEmail"
                 android:layout_width="match_parent"
@@ -36,7 +35,21 @@
                 android:inputType="textEmailAddress" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Поле Пароль (без passwordToggleEnabled) -->
+        <!-- Никнейм (обязательное поле) -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Никнейм (отображаемое имя)"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_marginBottom="12dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/editNickname"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Пароль -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -44,7 +57,6 @@
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             app:endIconMode="password_toggle"
             android:layout_marginBottom="12dp">
-
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/editPassword"
                 android:layout_width="match_parent"
@@ -52,7 +64,7 @@
                 android:inputType="textPassword" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Поле Подтверждение пароля -->
+        <!-- Подтверждение пароля -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -60,7 +72,6 @@
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             app:endIconMode="password_toggle"
             android:layout_marginBottom="16dp">
-
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/editConfirmPassword"
                 android:layout_width="match_parent"

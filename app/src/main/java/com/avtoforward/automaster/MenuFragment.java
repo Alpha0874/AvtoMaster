@@ -76,8 +76,7 @@ public class MenuFragment extends Fragment {
                 startActivity(new Intent(getActivity(), EditMasterProfileActivity.class)));
         view.findViewById(R.id.cardSupport).setOnClickListener(v ->
                 startActivity(new Intent(getActivity(), SupportActivity.class)));
-        view.findViewById(R.id.cardAppInfo).setOnClickListener(v ->
-                startActivity(new Intent(getActivity(), InfoActivity.class)));
+        // Кнопка "О приложении" теперь в профиле, поэтому удаляем её с главного экрана
         view.findViewById(R.id.cardAppHelp).setOnClickListener(v ->
                 startActivity(new Intent(getActivity(), ContributeActivity.class)));
 

@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@color/background_dark"
+    android:fitsSystemWindows="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:paddingBottom="32dp">
+
+        <!-- Аватар -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:layout_marginBottom="16dp">
+
+            <ImageView
+                android:id="@+id/imageAvatar"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:src="@drawable/ic_role_master"
+                android:scaleType="centerCrop"
+                android:layout_marginBottom="8dp"
+                android:contentDescription="@string/avatar" />
+
+            <Button
+                android:id="@+id/buttonChangeAvatar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Сменить аватар"
+                style="@style/Widget.Material3.Button.TextButton" />
+        </LinearLayout>
+
+        <!-- ФИО -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Фамилия, Имя, Отчество"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="4dp" />
+        <EditText
+            android:id="@+id/editFullName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Иванов Иван Иванович"
+            android:textColorHint="@color/text_secondary"
+            android:textColor="@color/text_primary"
+            android:backgroundTint="@color/orange_accent"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Никнейм -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Никнейм (отображаемое имя)"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="4dp" />
+        <EditText
+            android:id="@+id/editNickname"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Юрий"
+            android:textColorHint="@color/text_secondary"
+            android:textColor="@color/text_primary"
+            android:backgroundTint="@color/orange_accent"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Телефон -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Номер телефона"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="4dp" />
+        <EditText
+            android:id="@+id/editPhone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="89932908749"
+            android:inputType="phone"
+            android:textColorHint="@color/text_secondary"
+            android:textColor="@color/text_primary"
+            android:backgroundTint="@color/orange_accent"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Город -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Город"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="4dp" />
+        <EditText
+            android:id="@+id/editCity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Краснодар"
+            android:textColorHint="@color/text_secondary"
+            android:textColor="@color/text_primary"
+            android:backgroundTint="@color/orange_accent"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Кнопка сохранения -->
+        <Button
+            android:id="@+id/buttonSave"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Сохранить"
+            android:backgroundTint="@color/orange_accent"
+            android:textColor="@color/background_dark"
+            android:padding="12dp"
+            android:textSize="16sp" />
+
+        <!-- Кнопка выхода -->
+        <Button
+            android:id="@+id/buttonLogout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Выйти из аккаунта"
+            android:backgroundTint="@color/orange_accent"
+            android:textColor="@color/background_dark"
+            android:padding="12dp"
+            android:textSize="16sp"
+            android:layout_marginTop="16dp" />
+
+        <!-- Кнопка "Информация о приложении" -->
+        <Button
+            android:id="@+id/buttonAbout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Информация о приложении"
+            android:backgroundTint="@color/button_secondary"
+            android:textColor="@color/text_secondary"
+            android:padding="12dp"
+            android:textSize="16sp"
+            android:layout_marginTop="8dp" />
+
+    </LinearLayout>
+</ScrollView>

@@ -7,24 +7,23 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-
+import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
-
+import com.avtoforward.automaster.fragments.DocumentCategoriesFragment;
 import com.google.android.material.card.MaterialCardView;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class ForumKnowledgeFragment extends Fragment {
 
-    private List<String> categoryIds = new ArrayList<>();
-    private List<String> categoryNames = new ArrayList<>();
+    private final List<String> categoryIds = new ArrayList<>();
+    private final List<String> categoryNames = new ArrayList<>();
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_knowledge_list, container, false);
         LinearLayout containerLayout = view.findViewById(R.id.containerKnowledge);
@@ -49,9 +48,10 @@ public class ForumKnowledgeFragment extends Fragment {
                     buildMenu(containerLayout);
                 });
             } else {
-                requireActivity().runOnUiThread(() ->
-                        Toast.makeText(getContext(), "Ошибка загрузки категорий", Toast.LENGTH_SHORT).show()
-                );
+                requireActivity().runOnUiThread(() -> {
+                    // Если категории не загрузились, всё равно показываем раздел документации
+                    buildMenu(containerLayout);
+                });
             }
         }).start();
 
@@ -60,6 +60,8 @@ public class ForumKnowledgeFragment extends Fragment {
 
     private void buildMenu(LinearLayout container) {
         LayoutInflater inflater = LayoutInflater.from(getContext());
+
+        // Сначала отображаем все категории знаний из базы
         for (int i = 0; i < categoryNames.size(); i++) {
             String categoryId = categoryIds.get(i);
             String categoryName = categoryNames.get(i);
@@ -69,6 +71,7 @@ public class ForumKnowledgeFragment extends Fragment {
             card.findViewById(R.id.iconCategory).setVisibility(View.GONE);
 
             card.setOnClickListener(v -> {
+                // Открываем подкатегории для знаний
                 SubcategoriesFragment fragment = SubcategoriesFragment.newInstance(categoryId);
                 FragmentTransaction transaction = requireActivity().getSupportFragmentManager().beginTransaction();
                 transaction.replace(R.id.container, fragment);
@@ -78,5 +81,22 @@ public class ForumKnowledgeFragment extends Fragment {
 
             container.addView(card);
         }
+
+        // Добавляем отдельную карточку "Документация" в конец списка
+        MaterialCardView docCard = (MaterialCardView) inflater.inflate(R.layout.item_forum_category, container, false);
+        TextView docTextView = docCard.findViewById(R.id.textCategory);
+        docTextView.setText("Документация (схемы, ремонт)");
+        docCard.findViewById(R.id.iconCategory).setVisibility(View.GONE);
+
+        docCard.setOnClickListener(v -> {
+            // Открываем фрагмент документации (список категорий техники)
+            DocumentCategoriesFragment fragment = new DocumentCategoriesFragment();
+            FragmentTransaction transaction = requireActivity().getSupportFragmentManager().beginTransaction();
+            transaction.replace(R.id.container, fragment);
+            transaction.addToBackStack(null);
+            transaction.commit();
+        });
+
+        container.addView(docCard);
     }
 }

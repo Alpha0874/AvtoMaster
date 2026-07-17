@@ -28,7 +28,8 @@ public class MasterActivity extends AppCompatActivity {
 
         navHome.setOnClickListener(v -> showFragment(new MenuFragment()));
         navForum.setOnClickListener(v -> startActivity(new Intent(this, ForumActivity.class)));
-        navOrders.setOnClickListener(v -> startActivity(new Intent(this, MyOrdersActivity.class)));
+        // ✅ Исправлено: открываем ActiveOrdersActivity (новые заказы)
+        navOrders.setOnClickListener(v -> startActivity(new Intent(this, ActiveOrdersActivity.class)));
         navStatistics.setOnClickListener(v -> startActivity(new Intent(this, StatisticsActivity.class)));
         navProfile.setOnClickListener(v -> startActivity(new Intent(this, EditMasterProfileActivity.class)));
 

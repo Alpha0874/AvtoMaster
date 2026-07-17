@@ -5,6 +5,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
@@ -33,7 +35,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class PocketBaseClient {
-    private static final String BASE_URL = "http://192.168.0.12:8090";
+    private static final String BASE_URL = "http://192.168.0.11:8090";
     private static final String PREFS_NAME = "pocketbase_prefs";
     private static final String KEY_TOKEN = "auth_token";
     private static final String KEY_USER_ID = "user_id";
@@ -94,11 +96,15 @@ public class PocketBaseClient {
         }
     }
 
-    public static boolean register(String email, String password, String passwordConfirm) {
+    public static boolean register(String email, String password, String passwordConfirm, String nickname) {
         JsonObject body = new JsonObject();
         body.addProperty("email", email);
         body.addProperty("password", password);
         body.addProperty("passwordConfirm", passwordConfirm);
+        if (nickname == null || nickname.isEmpty()) {
+            nickname = email.split("@")[0];
+        }
+        body.addProperty("nickname", nickname);
 
         Request request = new Request.Builder()
                 .url(BASE_URL + "/api/collections/users/records")
@@ -194,6 +200,14 @@ public class PocketBaseClient {
         return BASE_URL;
     }
 
+    public static OkHttpClient getClient() {
+        return client;
+    }
+
+    public static Gson getGson() {
+        return gson;
+    }
+
     // ==================== getUsersByRole ====================
     public static JsonObject getUsersByRole(String role) {
         if (!isLoggedIn()) return null;
@@ -241,39 +255,74 @@ public class PocketBaseClient {
     }
 
     public static JsonObject getForumMessages(String topicId) {
-        return getForumMessagesPage(topicId, 1, 50);
+        if (!isLoggedIn()) {
+            Log.e("POCKETBASE", "getForumMessages: not logged in");
+            return null;
+        }
+        try {
+            String url = BASE_URL + "/api/collections/forum_messages/records?filter=(topic_id='" + topicId + "')&sort=created&expand=author&perPage=100";
+            Log.d("POCKETBASE", "getForumMessages URL: " + url);
+            Request request = new Request.Builder()
+                    .url(url)
+                    .header("Authorization", authToken)
+                    .get()
+                    .build();
+            try (Response response = client.newCall(request).execute()) {
+                String responseBody = response.body() != null ? response.body().string() : "";
+                Log.d("POCKETBASE", "getForumMessages response: " + response.code() + ", body: " + responseBody);
+                if (response.isSuccessful()) {
+                    return gson.fromJson(responseBody, JsonObject.class);
+                } else {
+                    Log.e("POCKETBASE", "getForumMessages failed: " + response.code());
+                    return null;
+                }
+            }
+        } catch (Exception e) {
+            Log.e("POCKETBASE", "getForumMessages error", e);
+            return null;
+        }
     }
 
     public static void sendForumMessage(String topicId, String authorId, String messageText, Runnable onSuccess) {
         if (!isLoggedIn()) {
-            Log.e("DELETE_DEBUG", "Not logged in");
+            Log.e("POCKETBASE", "Not logged in");
+            return;
+        }
+        if (topicId == null || topicId.isEmpty()) {
+            Log.e("POCKETBASE", "topicId is null or empty");
+            return;
+        }
+        if (authorId == null || authorId.isEmpty()) {
+            Log.e("POCKETBASE", "authorId is null or empty");
             return;
         }
         new Thread(() -> {
-            Log.d("DELETE_DEBUG", "Sending message: topicId=" + topicId + ", authorId=" + authorId + ", text=" + messageText);
-            JsonObject body = new JsonObject();
-            body.addProperty("author", authorId);
-            body.addProperty("message_text", messageText);
-            body.addProperty("topic_id", topicId);
-            Log.d("DELETE_DEBUG", "Request body: " + body.toString());
-            Request request = new Request.Builder()
-                    .url(BASE_URL + "/api/collections/forum_messages/records")
-                    .header("Authorization", authToken)
-                    .post(RequestBody.create(gson.toJson(body), MediaType.parse("application/json")))
-                    .build();
-            try (Response response = client.newCall(request).execute()) {
-                String responseBody = response.body() != null ? response.body().string() : "";
-                Log.d("DELETE_DEBUG", "Response code: " + response.code() + ", body: " + responseBody);
-                if (response.isSuccessful()) {
-                    updateTopicLastMessage(topicId);
-                    if (onSuccess != null) {
-                        new android.os.Handler(android.os.Looper.getMainLooper()).post(onSuccess);
+            try {
+                JsonObject body = new JsonObject();
+                body.addProperty("author", authorId);
+                body.addProperty("message_text", messageText);
+                body.addProperty("topic_id", topicId);
+                String jsonBody = gson.toJson(body);
+                Log.d("POCKETBASE", "Sending JSON: " + jsonBody);
+                Request request = new Request.Builder()
+                        .url(BASE_URL + "/api/collections/forum_messages/records")
+                        .header("Authorization", authToken)
+                        .post(RequestBody.create(jsonBody, MediaType.parse("application/json")))
+                        .build();
+                try (Response response = client.newCall(request).execute()) {
+                    String responseBody = response.body() != null ? response.body().string() : "";
+                    Log.d("POCKETBASE", "Response code: " + response.code() + ", body: " + responseBody);
+                    if (response.isSuccessful()) {
+                        updateTopicLastMessage(topicId);
+                        if (onSuccess != null) {
+                            new Handler(Looper.getMainLooper()).post(onSuccess);
+                        }
+                    } else {
+                        Log.e("POCKETBASE", "Failed to send message: " + response.code() + " - " + responseBody);
                     }
-                } else {
-                    Log.e("DELETE_DEBUG", "Failed to send message: " + response.code() + " - " + responseBody);
                 }
-            } catch (IOException e) {
-                Log.e("DELETE_DEBUG", "sendForumMessage error", e);
+            } catch (Exception e) {
+                Log.e("POCKETBASE", "sendForumMessage error", e);
             }
         }).start();
     }
@@ -289,7 +338,7 @@ public class PocketBaseClient {
                 MultipartBody.Builder bodyBuilder = new MultipartBody.Builder()
                         .setType(MultipartBody.FORM)
                         .addFormDataPart("author", authorId)
-                        .addFormDataPart("message_text", messageText)
+                        .addFormDataPart("message_text", messageText == null ? "" : messageText)
                         .addFormDataPart("topic_id", topicId);
                 if (appContext != null) {
                     ContentResolver resolver = appContext.getContentResolver();
@@ -309,20 +358,23 @@ public class PocketBaseClient {
                         .post(bodyBuilder.build())
                         .build();
                 try (Response response = client.newCall(request).execute()) {
+                    String responseBody = response.body() != null ? response.body().string() : "";
+                    Log.d("POCKETBASE_MULTIPART", "Response code: " + response.code() + ", body: " + responseBody);
                     if (response.isSuccessful()) {
+                        updateTopicLastMessage(topicId);
                         if (onSuccess != null) {
-                            new android.os.Handler(android.os.Looper.getMainLooper()).post(onSuccess);
+                            new Handler(Looper.getMainLooper()).post(onSuccess);
                         }
                     } else if (response.code() == 401 && attempt <= 1) {
                         if (refreshToken()) {
                             sendMessageWithRetryMultipart(topicId, authorId, messageText, imageUris, onSuccess, attempt + 1);
                         }
                     } else {
-                        Log.e("PocketBase", "Send message with photos failed: " + response.code());
+                        Log.e("POCKETBASE_MULTIPART", "Send message with photos failed: " + response.code() + " - " + responseBody);
                     }
                 }
             } catch (Exception e) {
-                Log.e("PocketBase", "Send message with photos error", e);
+                Log.e("POCKETBASE_MULTIPART", "Send message with photos error", e);
             }
         }).start();
     }
@@ -364,7 +416,7 @@ public class PocketBaseClient {
                     if (response.isSuccessful()) {
                         updateTopicLastMessage(topicId);
                         if (onSuccess != null) {
-                            new android.os.Handler(android.os.Looper.getMainLooper()).post(onSuccess);
+                            new Handler(Looper.getMainLooper()).post(onSuccess);
                         }
                     } else {
                         Log.e("PocketBase", "sendForumMessageWithPaths failed: " + response.code());
@@ -408,37 +460,46 @@ public class PocketBaseClient {
         }
     }
 
-    // ==================== ТЕМЫ ФОРУМА (исправлено) ====================
-    public static JsonObject getTopicsByCategory(String knowledgeType, String category) {
-        if (!isLoggedIn()) return null;
+    // ==================== ТЕМЫ ФОРУМА ====================
+    public static JsonObject getTopicsBySubcategory(String subcategoryId) {
+        if (!isLoggedIn()) {
+            Log.e("POCKETBASE", "getTopicsBySubcategory: not logged in");
+            return null;
+        }
         try {
-            String filter = "knowledge_type='" + knowledgeType + "' && category='" + category + "'";
+            String filter = "category='" + subcategoryId + "'";
             String encodedFilter = java.net.URLEncoder.encode(filter, "UTF-8");
-            String url = BASE_URL + "/api/collections/forum_topics/records?filter=" + encodedFilter + "&sort=-created_at";
+            String url = BASE_URL + "/api/collections/forum_topics/records?filter=" + encodedFilter + "&sort=-last_message_at";
+            Log.d("POCKETBASE", "getTopicsBySubcategory URL: " + url);
             Request request = new Request.Builder()
                     .url(url)
                     .header("Authorization", authToken)
                     .get()
                     .build();
             try (Response response = client.newCall(request).execute()) {
+                String responseBody = response.body() != null ? response.body().string() : "";
+                Log.d("POCKETBASE", "getTopicsBySubcategory response: " + response.code() + ", body: " + responseBody);
                 if (response.isSuccessful()) {
-                    return gson.fromJson(response.body().string(), JsonObject.class);
+                    return gson.fromJson(responseBody, JsonObject.class);
+                } else {
+                    Log.e("POCKETBASE", "getTopicsBySubcategory failed: " + response.code());
+                    return null;
                 }
             }
         } catch (Exception e) {
-            Log.e("PocketBase", "getTopicsByCategory error", e);
+            Log.e("POCKETBASE", "getTopicsBySubcategory error", e);
+            return null;
         }
-        return null;
     }
 
-    public static boolean createTopic(String title, String knowledgeType, String category, String createdBy) {
+    public static boolean createTopic(String title, String subcategoryId, String createdBy) {
         if (!isLoggedIn()) return false;
         try {
             JsonObject body = new JsonObject();
             body.addProperty("title", title);
-            body.addProperty("knowledge_type", knowledgeType);
-            body.addProperty("category", category);
+            body.addProperty("category", subcategoryId);
             body.addProperty("created_by", createdBy);
+            body.addProperty("last_message_at", getCurrentIsoTime());
             Request request = new Request.Builder()
                     .url(BASE_URL + "/api/collections/forum_topics/records")
                     .header("Authorization", authToken)
@@ -506,51 +567,6 @@ public class PocketBaseClient {
             Log.e("PocketBase", "getTopicById error", e);
         }
         return null;
-    }
-
-    // ==================== НОВЫЕ МЕТОДЫ ДЛЯ ФОРУМА (с полем relation) ====================
-    public static JsonObject getTopicsBySubcategory(String subcategoryId) {
-        if (!isLoggedIn()) return null;
-        try {
-            String filter = "relation='" + subcategoryId + "'";
-            String encodedFilter = java.net.URLEncoder.encode(filter, "UTF-8");
-            String url = BASE_URL + "/api/collections/forum_topics/records?filter=" + encodedFilter + "&sort=-last_message_at";
-            Request request = new Request.Builder()
-                    .url(url)
-                    .header("Authorization", authToken)
-                    .get()
-                    .build();
-            try (Response response = client.newCall(request).execute()) {
-                if (response.isSuccessful()) {
-                    return gson.fromJson(response.body().string(), JsonObject.class);
-                }
-            }
-        } catch (Exception e) {
-            Log.e("PocketBase", "getTopicsBySubcategory error", e);
-        }
-        return null;
-    }
-
-    public static boolean createTopicWithRelation(String title, String subcategoryId, String createdBy) {
-        if (!isLoggedIn()) return false;
-        try {
-            JsonObject body = new JsonObject();
-            body.addProperty("title", title);
-            body.addProperty("relation", subcategoryId);
-            body.addProperty("created_by", createdBy);
-            body.addProperty("last_message_at", getCurrentIsoTime());
-            Request request = new Request.Builder()
-                    .url(BASE_URL + "/api/collections/forum_topics/records")
-                    .header("Authorization", authToken)
-                    .post(RequestBody.create(gson.toJson(body), MediaType.parse("application/json")))
-                    .build();
-            try (Response response = client.newCall(request).execute()) {
-                return response.isSuccessful();
-            }
-        } catch (Exception e) {
-            Log.e("PocketBase", "createTopicWithRelation error", e);
-        }
-        return false;
     }
 
     public static void updateTopicLastMessage(String topicId) {
@@ -664,7 +680,7 @@ public class PocketBaseClient {
     public static int getUnreadCountForTopic(String topicId, long lastReadTime) {
         if (!isLoggedIn()) return 0;
         try {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS'Z'", Locale.US);
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
             sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
             String filter = "topic_id='" + topicId + "' && created > '" + sdf.format(new Date(lastReadTime)) + "'";
             Request request = new Request.Builder()
@@ -688,7 +704,7 @@ public class PocketBaseClient {
     public static JsonObject getNewMessagesSince(long lastTimestamp) {
         if (!isLoggedIn()) return null;
         try {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS'Z'", Locale.US);
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
             sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
             String lastTimeStr = sdf.format(new Date(lastTimestamp));
             String filter = "created > '" + lastTimeStr + "'";
@@ -709,6 +725,28 @@ public class PocketBaseClient {
     }
 
     // ==================== ДОКУМЕНТАЦИЯ ====================
+    public static JsonObject getRecords(String collectionName) {
+        if (!isLoggedIn()) return null;
+        try {
+            String url = BASE_URL + "/api/collections/" + collectionName + "/records?perPage=100";
+            Request request = new Request.Builder()
+                    .url(url)
+                    .header("Authorization", authToken)
+                    .get()
+                    .build();
+            try (Response response = client.newCall(request).execute()) {
+                if (response.isSuccessful()) {
+                    return gson.fromJson(response.body().string(), JsonObject.class);
+                } else {
+                    Log.e("PocketBase", "getRecords failed for " + collectionName + ": " + response.code());
+                }
+            }
+        } catch (Exception e) {
+            Log.e("PocketBase", "getRecords error", e);
+        }
+        return null;
+    }
+
     public static JsonObject getModelsByFilter(String filter) {
         if (!isLoggedIn()) return null;
         try {
@@ -848,26 +886,6 @@ public class PocketBaseClient {
     }
 
     // ==================== ЗАКАЗЫ ====================
-    public static JsonObject getNewOrdersForMaster() {
-        if (!isLoggedIn()) return null;
-        try {
-            String filter = "status='new' && assigned_to=null";
-            Request request = new Request.Builder()
-                    .url(BASE_URL + "/api/collections/orders/records?filter=" + java.net.URLEncoder.encode(filter, "UTF-8"))
-                    .header("Authorization", authToken)
-                    .get()
-                    .build();
-            try (Response response = client.newCall(request).execute()) {
-                if (response.isSuccessful()) {
-                    return gson.fromJson(response.body().string(), JsonObject.class);
-                }
-            }
-        } catch (Exception e) {
-            Log.e("PocketBase", "getNewOrdersForMaster error", e);
-        }
-        return null;
-    }
-
     public static boolean createOrder(com.avtoforward.automaster.Order order) {
         if (!isLoggedIn()) return false;
         try {
@@ -910,29 +928,40 @@ public class PocketBaseClient {
         return false;
     }
 
-    public static List<com.avtoforward.automaster.Order> getNewOrders() {
-        List<com.avtoforward.automaster.Order> orders = new ArrayList<>();
-        if (!isLoggedIn()) return orders;
+    public static List<Order> getNewOrders() {
+        List<Order> orders = new ArrayList<>();
+        if (!isLoggedIn()) {
+            Log.e("PocketBase", "getNewOrders: not logged in");
+            return orders;
+        }
         try {
             String filter = "status='new' && (assigned_to='' || assigned_to=null)";
+            String encodedFilter = java.net.URLEncoder.encode(filter, "UTF-8");
+            String url = BASE_URL + "/api/collections/orders/records?filter=" + encodedFilter + "&sort=-created_at";
+            Log.d("PocketBase", "getNewOrders URL: " + url);
             Request request = new Request.Builder()
-                    .url(BASE_URL + "/api/collections/orders/records?filter=" + java.net.URLEncoder.encode(filter, "UTF-8") + "&sort=-created_at")
+                    .url(url)
                     .header("Authorization", authToken)
                     .get()
                     .build();
             try (Response response = client.newCall(request).execute()) {
+                String responseBody = response.body() != null ? response.body().string() : "";
+                Log.d("PocketBase", "getNewOrders response code: " + response.code() + ", body: " + responseBody);
                 if (response.isSuccessful()) {
-                    JsonObject result = gson.fromJson(response.body().string(), JsonObject.class);
+                    JsonObject result = gson.fromJson(responseBody, JsonObject.class);
                     JsonArray items = result.getAsJsonArray("items");
                     for (int i = 0; i < items.size(); i++) {
-                        com.avtoforward.automaster.Order order = parseOrder(items.get(i).getAsJsonObject());
+                        Order order = parseOrder(items.get(i).getAsJsonObject());
                         if (order != null) orders.add(order);
                     }
+                } else {
+                    Log.e("PocketBase", "getNewOrders failed: " + response.code());
                 }
             }
         } catch (Exception e) {
             Log.e("PocketBase", "Get new orders error", e);
         }
+        Log.d("PocketBase", "getNewOrders result: " + orders.size() + " orders found");
         return orders;
     }
 
@@ -1044,6 +1073,9 @@ public class PocketBaseClient {
             boolean isPremium = item.has("is_premium") && item.get("is_premium").getAsBoolean();
             String assignedTo = item.has("assigned_to") && !item.get("assigned_to").isJsonNull() ? item.get("assigned_to").getAsString() : null;
             long createdAt = item.has("created_at") ? item.get("created_at").getAsLong() : 0;
+            long orderNumber = item.has("order_number") && !item.get("order_number").isJsonNull()
+                    ? item.get("order_number").getAsLong()
+                    : 0;
 
             String clientName = item.has("client_name") && !item.get("client_name").isJsonNull() ? item.get("client_name").getAsString() : "";
             String clientPhone = item.has("client_phone") && !item.get("client_phone").isJsonNull() ? item.get("client_phone").getAsString() : "";
@@ -1150,22 +1182,32 @@ public class PocketBaseClient {
     }
 
     public static JsonObject getAllUsers() {
-        if (!isLoggedIn()) return null;
+        if (!isLoggedIn()) {
+            Log.e("PocketBase", "getAllUsers: not logged in");
+            return null;
+        }
         try {
+            String url = BASE_URL + "/api/collections/users/records?perPage=100";
+            Log.d("PocketBase", "getAllUsers URL: " + url);
             Request request = new Request.Builder()
-                    .url(BASE_URL + "/api/collections/users/records?perPage=100")
+                    .url(url)
                     .header("Authorization", authToken)
                     .get()
                     .build();
             try (Response response = client.newCall(request).execute()) {
+                String responseBody = response.body() != null ? response.body().string() : "";
+                Log.d("PocketBase", "getAllUsers response code: " + response.code() + ", body: " + responseBody);
                 if (response.isSuccessful()) {
-                    return gson.fromJson(response.body().string(), JsonObject.class);
+                    return gson.fromJson(responseBody, JsonObject.class);
+                } else {
+                    Log.e("PocketBase", "getAllUsers failed: " + response.code() + " - " + responseBody);
+                    return null;
                 }
             }
         } catch (Exception e) {
             Log.e("PocketBase", "getAllUsers error", e);
+            return null;
         }
-        return null;
     }
 
     public static JsonObject getPendingVerifications() {
@@ -1356,8 +1398,51 @@ public class PocketBaseClient {
         updateUser(currentUserId, data);
     }
 
-    // Метод для обратной совместимости с ForumTopicsFragment
-    public static boolean createTopic(String title, String subcategoryId, String createdBy) {
-        return createTopicWithRelation(title, subcategoryId, createdBy);
+    // ==================== ТАРИФЫ ====================
+    public static JsonObject getTariff(String city, String vehicleType) {
+        if (!isLoggedIn()) {
+            Log.e("PocketBase", "getTariff: not logged in");
+            return null;
+        }
+        try {
+            String url = BASE_URL + "/api/collections/tariffs/records?perPage=100";
+            Log.d("PocketBase", "getTariff URL: " + url);
+            Request request = new Request.Builder()
+                    .url(url)
+                    .header("Authorization", authToken)
+                    .get()
+                    .build();
+            try (Response response = client.newCall(request).execute()) {
+                if (response.isSuccessful()) {
+                    JsonObject result = gson.fromJson(response.body().string(), JsonObject.class);
+                    JsonArray items = result.getAsJsonArray("items");
+                    Log.d("PocketBase", "Все тарифы (количество): " + items.size());
+                    for (int i = 0; i < items.size(); i++) {
+                        JsonObject item = items.get(i).getAsJsonObject();
+                        String c = item.has("city") ? item.get("city").getAsString() : "";
+                        String vt = item.has("vehicle_type") ? item.get("vehicle_type").getAsString() : "";
+                        int price = item.has("base_price") ? item.get("base_price").getAsInt() : 0;
+                        Log.d("PocketBase", "Тариф: город=" + c + ", тип=" + vt + ", цена=" + price);
+                    }
+                    String cityTrim = city.trim();
+                    String vehicleTrim = vehicleType.trim();
+                    for (int i = 0; i < items.size(); i++) {
+                        JsonObject item = items.get(i).getAsJsonObject();
+                        String c = item.has("city") ? item.get("city").getAsString().trim() : "";
+                        String vt = item.has("vehicle_type") ? item.get("vehicle_type").getAsString().trim() : "";
+                        if (c.equalsIgnoreCase(cityTrim) && vt.equalsIgnoreCase(vehicleTrim)) {
+                            Log.d("PocketBase", "Найден тариф: " + c + ", " + vt + " = " + item.get("base_price").getAsInt());
+                            return item;
+                        }
+                    }
+                    Log.e("PocketBase", "Тариф НЕ найден для города: " + city + ", типа ТС: " + vehicleType);
+                } else {
+                    Log.e("PocketBase", "getTariff failed, code: " + response.code());
+                }
+            }
+        } catch (Exception e) {
+            Log.e("PocketBase", "getTariff error", e);
+        }
+        return null;
     }
 }

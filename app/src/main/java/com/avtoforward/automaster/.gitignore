@@ -1,0 +1,12 @@
+/.idea/
+/build/
+/app/build/
+/app/release/
+/local.properties
+/gradle/wrapper/gradle-wrapper.properties
+/gradle/wrapper/gradle-wrapper.jar
+/gradle/wrapper/gradle-8.7-bin.zip
+/.gradle/
+/captures/
+/*.iml
+/app/*.iml

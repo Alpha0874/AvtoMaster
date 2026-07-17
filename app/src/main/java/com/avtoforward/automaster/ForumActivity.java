@@ -3,10 +3,14 @@ package com.avtoforward.automaster;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
@@ -29,15 +33,23 @@ public class ForumActivity extends AppCompatActivity {
             getSupportActionBar().setTitle("Форум");
         }
 
-        // Слушатель для смены заголовка при переходе между фрагментами
+        // Обработка кнопки "Назад" через OnBackPressedDispatcher
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
+                    getSupportFragmentManager().popBackStack();
+                } else {
+                    finish();
+                }
+            }
+        });
+
+        // Слушатель для смены заголовка
         getSupportFragmentManager().addOnBackStackChangedListener(() -> {
             Fragment current = getSupportFragmentManager().findFragmentById(R.id.container);
             if (current instanceof ForumKnowledgeFragment) {
                 if (getSupportActionBar() != null) getSupportActionBar().setTitle("Форум");
-            } else if (current instanceof ForumTopicsFragment) {
-                // Заголовок установится в самом фрагменте, но можно оставить
-            } else if (current instanceof ForumChatFragment) {
-                // Заголовок установится в фрагменте
             } else {
                 if (getSupportActionBar() != null) getSupportActionBar().setTitle("Форум");
             }
@@ -75,9 +87,16 @@ public class ForumActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Меню теперь пустое, можно не надувать, но оставим для совместимости
+        // getMenuInflater().inflate(R.menu.menu_forum, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
-            onBackPressed();
+            // Обработка кнопки "Назад" через OnBackPressedDispatcher уже есть
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -92,12 +111,12 @@ public class ForumActivity extends AppCompatActivity {
     }
 
     public void openTopicsForSubcategory(String subcategoryId, String subcategoryName) {
-        replaceFragmentSafely(new ForumTopicsFragment(subcategoryId, subcategoryName), true);
+        replaceFragmentSafely(new com.avtoforward.automaster.fragments.ForumTopicsFragment(subcategoryId, subcategoryName), true);
     }
 
     public void openChat(String topicId, String topicTitle) {
         try {
-            replaceFragmentSafely(new ForumChatFragment(topicId, topicTitle), true);
+            replaceFragmentSafely(new com.avtoforward.automaster.fragments.ForumChatFragment(topicId, topicTitle), true);
         } catch (Exception e) {
             Log.e(TAG, "Ошибка при открытии чата: " + e.getMessage(), e);
             Toast.makeText(this, "Не удалось открыть чат. Попробуйте позже.", Toast.LENGTH_LONG).show();

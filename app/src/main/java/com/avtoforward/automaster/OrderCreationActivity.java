@@ -5,23 +5,23 @@ import android.view.View;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.google.gson.JsonObject;
+
 import java.util.UUID;
 
 public class OrderCreationActivity extends AppCompatActivity {
 
-    private Spinner spinnerCity, spinnerVehicleType, spinnerMasterType, spinnerPaymentMethod;
+    private Spinner spinnerCity, spinnerVehicleType, spinnerPaymentMethod;
     private EditText editClientName, editClientPhone, editAddress, editDistanceMkad;
     private EditText editVehicleBrand, editVehicleModel, editVehicleYear;
-    private EditText editProblemDescription, editComment;
+    private EditText editProblemDescription, editComment, editPrice;
     private CheckBox checkPriceByAgreement;
-    private Button buttonCreateOrder;
+    private Button buttonContinue;
     private LinearLayout layoutMkadDistance;
 
-    private Map<String, Map<String, Integer>> priceTable = new HashMap<>();
     private String currentUserId;
-    private String selectedService; // из extra
+    private String selectedService;
+    private int calculatedPrice = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,14 +35,11 @@ public class OrderCreationActivity extends AppCompatActivity {
             return;
         }
 
-        // Получаем выбранную услугу
         selectedService = getIntent().getStringExtra("selected_service");
-        if (selectedService == null) selectedService = "Автоэлектрик"; // по умолчанию
+        if (selectedService == null) selectedService = "Автоэлектрик";
 
-        // Инициализация виджетов
         spinnerCity = findViewById(R.id.spinnerCity);
         spinnerVehicleType = findViewById(R.id.spinnerVehicleType);
-        spinnerMasterType = findViewById(R.id.spinnerMasterType);
         spinnerPaymentMethod = findViewById(R.id.spinnerPaymentMethod);
         editClientName = findViewById(R.id.editClientName);
         editClientPhone = findViewById(R.id.editClientPhone);
@@ -53,13 +50,40 @@ public class OrderCreationActivity extends AppCompatActivity {
         editVehicleYear = findViewById(R.id.editVehicleYear);
         editProblemDescription = findViewById(R.id.editProblemDescription);
         editComment = findViewById(R.id.editComment);
+        editPrice = findViewById(R.id.editPrice);
         checkPriceByAgreement = findViewById(R.id.checkPriceByAgreement);
-        buttonCreateOrder = findViewById(R.id.buttonCreateOrder);
+        buttonContinue = findViewById(R.id.buttonContinue);
         layoutMkadDistance = findViewById(R.id.layoutMkadDistance);
 
         setupSpinners();
-        preSelectMasterType(); // устанавливаем выбранную услугу в спиннер
 
+        // Обновление цены при смене города или типа ТС
+        AdapterView.OnItemSelectedListener priceUpdateListener = new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                updatePrice();
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        };
+        spinnerCity.setOnItemSelectedListener(priceUpdateListener);
+        spinnerVehicleType.setOnItemSelectedListener(priceUpdateListener);
+
+        editDistanceMkad.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) updatePrice();
+        });
+
+        checkPriceByAgreement.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                editPrice.setEnabled(false);
+                editPrice.setText("0");
+            } else {
+                editPrice.setEnabled(true);
+                updatePrice();
+            }
+        });
+
+        // Показываем/скрываем поле расстояния для Москвы
         spinnerCity.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -70,14 +94,16 @@ public class OrderCreationActivity extends AppCompatActivity {
                     layoutMkadDistance.setVisibility(View.GONE);
                     editDistanceMkad.setText("0");
                 }
+                updatePrice();
             }
             @Override
             public void onNothingSelected(AdapterView<?> parent) {}
         });
 
-        buttonCreateOrder.setOnClickListener(v -> createOrder());
+        buttonContinue.setOnClickListener(v -> createOrder());
 
-        initPriceTable();
+        // Первоначальный расчёт цены
+        updatePrice();
     }
 
     private void setupSpinners() {
@@ -91,40 +117,57 @@ public class OrderCreationActivity extends AppCompatActivity {
         vehicleAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerVehicleType.setAdapter(vehicleAdapter);
 
-        ArrayAdapter<CharSequence> masterAdapter = ArrayAdapter.createFromResource(this,
-                R.array.master_types_array, android.R.layout.simple_spinner_item);
-        masterAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerMasterType.setAdapter(masterAdapter);
-
         ArrayAdapter<CharSequence> paymentAdapter = ArrayAdapter.createFromResource(this,
                 R.array.payment_methods_array, android.R.layout.simple_spinner_item);
         paymentAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerPaymentMethod.setAdapter(paymentAdapter);
     }
 
-    private void preSelectMasterType() {
-        // Устанавливаем выбранную услугу в спиннер masterType
-        ArrayAdapter<String> adapter = (ArrayAdapter<String>) spinnerMasterType.getAdapter();
-        int position = adapter.getPosition(selectedService);
-        if (position >= 0) {
-            spinnerMasterType.setSelection(position);
+    private void updatePrice() {
+        if (checkPriceByAgreement.isChecked()) {
+            editPrice.setText("0");
+            editPrice.setEnabled(false);
+            return;
         }
-    }
 
-    private void initPriceTable() {
-        Map<String, Integer> moscow = new HashMap<>();
-        moscow.put("Легковой", 6000);
-        moscow.put("Лёгкий коммерческий", 8000);
-        moscow.put("Грузовой от 5т", 15000);
-        moscow.put("Спецтехника", 17000);
-        priceTable.put("Москва", moscow);
+        String city = spinnerCity.getSelectedItem().toString();
+        String vehicleType = spinnerVehicleType.getSelectedItem().toString();
+        String distanceStr = editDistanceMkad.getText().toString().trim();
 
-        Map<String, Integer> krasnodar = new HashMap<>();
-        krasnodar.put("Легковой", 4000);
-        krasnodar.put("Лёгкий коммерческий", 5000);
-        krasnodar.put("Грузовой от 5т", 8000);
-        krasnodar.put("Спецтехника", 10000);
-        priceTable.put("Краснодар", krasnodar);
+        int distance = 0;
+        if (!distanceStr.isEmpty()) {
+            try {
+                distance = Integer.parseInt(distanceStr);
+            } catch (NumberFormatException ignored) {}
+        }
+
+        if (city.isEmpty()) {
+            editPrice.setText("0");
+            editPrice.setEnabled(true);
+            return;
+        }
+
+        final int finalDistance = distance;
+        final String finalCity = city;
+        final String finalVehicleType = vehicleType;
+
+        new Thread(() -> {
+            JsonObject tariff = PocketBaseClient.getTariff(finalCity, finalVehicleType);
+            runOnUiThread(() -> {
+                if (tariff != null) {
+                    int basePrice = tariff.get("base_price").getAsInt();
+                    int pricePerKm = tariff.has("price_per_km") && !tariff.get("price_per_km").isJsonNull()
+                            ? tariff.get("price_per_km").getAsInt()
+                            : 0;
+                    int total = basePrice + finalDistance * pricePerKm;
+                    editPrice.setText(String.valueOf(total));
+                    editPrice.setEnabled(true);
+                } else {
+                    editPrice.setText("0");
+                    editPrice.setEnabled(true);
+                }
+            });
+        }).start();
     }
 
     private void createOrder() {
@@ -140,26 +183,28 @@ public class OrderCreationActivity extends AppCompatActivity {
 
         String city = spinnerCity.getSelectedItem().toString();
         String vehicleType = spinnerVehicleType.getSelectedItem().toString();
-        String masterType = spinnerMasterType.getSelectedItem().toString();
         String paymentMethod = spinnerPaymentMethod.getSelectedItem().toString();
         boolean priceByAgreement = checkPriceByAgreement.isChecked();
 
         int estimatedPrice = 0;
         if (!priceByAgreement) {
-            int basePrice = priceTable.get(city).getOrDefault(vehicleType, 0);
-            int extraKm = 0;
-            if ("Москва".equals(city)) {
-                try {
-                    extraKm = Integer.parseInt(editDistanceMkad.getText().toString());
-                } catch (NumberFormatException ignored) {}
+            try {
+                estimatedPrice = Integer.parseInt(editPrice.getText().toString().trim());
+            } catch (NumberFormatException e) {
+                Toast.makeText(this, "Некорректная цена", Toast.LENGTH_SHORT).show();
+                return;
             }
-            estimatedPrice = basePrice + (extraKm * 100);
         }
 
+        int distance = 0;
+        try {
+            distance = Integer.parseInt(editDistanceMkad.getText().toString().trim());
+        } catch (NumberFormatException ignored) {}
+
         String orderId = UUID.randomUUID().toString();
-        com.avtoforward.automaster.Order order = new com.avtoforward.automaster.Order(
+        Order order = new Order(
                 orderId,
-                masterType,
+                selectedService,
                 address,
                 description,
                 editComment.getText().toString().trim(),
@@ -176,8 +221,8 @@ public class OrderCreationActivity extends AppCompatActivity {
                 clientName,
                 clientPhone,
                 city,
-                Integer.parseInt(editDistanceMkad.getText().toString()),
-                masterType,
+                distance,
+                selectedService,
                 paymentMethod,
                 priceByAgreement,
                 0

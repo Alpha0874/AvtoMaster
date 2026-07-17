@@ -4,9 +4,10 @@ import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -33,6 +34,8 @@ import java.util.Map;
 
 public class EditMasterProfileActivity extends AppCompatActivity {
 
+    private static final String TAG = "ProfileEdit";
+
     private EditText editFullName, editNickname, editServiceName, editPhone, editCity;
     private RadioGroup radioGroupCorporate;
     private Spinner spinnerStatus;
@@ -49,6 +52,9 @@ public class EditMasterProfileActivity extends AppCompatActivity {
     private ActivityResultLauncher<Intent> imagePickerLauncher;
     private ActivityResultLauncher<Intent> cameraLauncher;
     private ActivityResultLauncher<Intent> cameraPassportLauncher;
+
+    // Для управления видимостью блоков мастера
+    private View groupCorporate, groupStatus, groupEquipment, groupVerification;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +81,12 @@ public class EditMasterProfileActivity extends AppCompatActivity {
         buttonChangeAvatar = findViewById(R.id.buttonChangeAvatar);
         textVerificationStatus = findViewById(R.id.textVerificationStatus);
         buttonUploadPassport = findViewById(R.id.buttonUploadPassport);
+
+        // Находим группы для скрытия (оборачиваем в View, чтобы скрыть целиком)
+        groupCorporate = findViewById(R.id.groupCorporate);
+        groupStatus = findViewById(R.id.groupStatus);
+        groupEquipment = findViewById(R.id.groupEquipment);
+        groupVerification = findViewById(R.id.groupVerification);
 
         ArrayAdapter<CharSequence> statusAdapter = ArrayAdapter.createFromResource(this,
                 R.array.master_statuses, android.R.layout.simple_spinner_item);
@@ -115,8 +127,32 @@ public class EditMasterProfileActivity extends AppCompatActivity {
         buttonSave.setOnClickListener(v -> saveProfile());
         buttonUploadPassport.setOnClickListener(v -> openCameraForPassport());
 
+        // Кнопка выхода
+        Button buttonLogout = findViewById(R.id.buttonLogout);
+        if (buttonLogout != null) {
+            buttonLogout.setOnClickListener(v -> {
+                PocketBaseClient.logout();
+                Toast.makeText(this, "Вы вышли из аккаунта", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(this, LoginActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
+                finish();
+            });
+        }
+
+        // Кнопка "Информация о приложении"
+        Button buttonAbout = findViewById(R.id.buttonAbout);
+        if (buttonAbout != null) {
+            buttonAbout.setOnClickListener(v -> {
+                Intent intent = new Intent(this, com.avtoforward.automaster.AboutActivity.class);
+                startActivity(intent);
+            });
+        }
+
         loadProfile();
     }
+
+    // ========== ОСТАЛЬНЫЕ МЕТОДЫ ==========
 
     private void showImageSourceDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -151,7 +187,6 @@ public class EditMasterProfileActivity extends AppCompatActivity {
     }
 
     private void openCameraForPassport() {
-        // Показываем инструкцию перед съёмкой
         new AlertDialog.Builder(this)
                 .setTitle("Фото для верификации")
                 .setMessage("Сделайте селфи с разворотом паспорта.\n\n"
@@ -184,56 +219,109 @@ public class EditMasterProfileActivity extends AppCompatActivity {
             JsonObject user = PocketBaseClient.getUserInfo(userId);
             if (user != null) {
                 runOnUiThread(() -> {
-                    if (user.has("full_name") && !user.get("full_name").isJsonNull())
-                        editFullName.setText(user.get("full_name").getAsString());
-                    if (user.has("nickname") && !user.get("nickname").isJsonNull())
-                        editNickname.setText(user.get("nickname").getAsString());
-                    if (user.has("service_name") && !user.get("service_name").isJsonNull())
-                        editServiceName.setText(user.get("service_name").getAsString());
-                    if (user.has("phone") && !user.get("phone").isJsonNull())
-                        editPhone.setText(user.get("phone").getAsString());
-                    if (user.has("city") && !user.get("city").isJsonNull())
-                        editCity.setText(user.get("city").getAsString());
+                    // Определяем роль
+                    String role = user.has("role") && !user.get("role").isJsonNull()
+                            ? user.get("role").getAsString()
+                            : "user";
+                    boolean isMaster = "master".equals(role) || "admin".equals(role);
 
+                    // Скрываем блоки мастера, если пользователь — клиент
+                    if (groupCorporate != null) {
+                        groupCorporate.setVisibility(isMaster ? View.VISIBLE : View.GONE);
+                    }
+                    if (groupStatus != null) {
+                        groupStatus.setVisibility(isMaster ? View.VISIBLE : View.GONE);
+                    }
+                    if (groupEquipment != null) {
+                        groupEquipment.setVisibility(isMaster ? View.VISIBLE : View.GONE);
+                    }
+                    if (groupVerification != null) {
+                        groupVerification.setVisibility(isMaster ? View.VISIBLE : View.GONE);
+                    }
+
+                    // ФИО
+                    String fullName = getStringValue(user, "full_name");
+                    editFullName.setText(fullName);
+                    // Никнейм
+                    String nickname = getStringValue(user, "nickname");
+                    editNickname.setText(nickname);
+                    // Название сервиса
+                    String serviceName = getStringValue(user, "service_name");
+                    editServiceName.setText(serviceName);
+                    // Телефон
+                    String phone = getStringValue(user, "phone");
+                    editPhone.setText(phone);
+                    // Город
+                    String city = getStringValue(user, "city");
+                    editCity.setText(city);
+
+                    // Аватар
                     if (user.has("avatar") && !user.get("avatar").isJsonNull()) {
                         String avatarUrl = PocketBaseClient.getBaseUrl() + "/api/files/users/" + userId + "/" + user.get("avatar").getAsString();
                         Picasso.get().load(avatarUrl).into(imageAvatar);
-                    }
-
-                    if (user.has("verification_status") && !user.get("verification_status").isJsonNull()) {
-                        String status = user.get("verification_status").getAsString();
-                        if ("verified".equals(status)) {
-                            textVerificationStatus.setText("Статус: подтверждён ✓");
-                            textVerificationStatus.setTextColor(ContextCompat.getColor(this, R.color.orange_accent));
-                        } else if ("pending".equals(status)) {
-                            textVerificationStatus.setText("Статус: на проверке...");
-                        } else {
-                            textVerificationStatus.setText("Статус: отклонён. Загрузите фото ещё раз.");
-                        }
                     } else {
-                        textVerificationStatus.setText("Статус: не проверен");
+                        imageAvatar.setImageResource(R.drawable.ic_role_master);
                     }
 
-                    if (user.has("corporate_ready") && !user.get("corporate_ready").isJsonNull()) {
-                        String corp = user.get("corporate_ready").getAsString();
-                        if ("yes".equals(corp)) radioGroupCorporate.check(R.id.radioCorporateYes);
-                        else radioGroupCorporate.check(R.id.radioCorporateNo);
+                    // Статус верификации (показываем только для мастеров)
+                    if (isMaster) {
+                        String verificationStatus = getStringValue(user, "verification_status");
+                        if ("verified".equals(verificationStatus)) {
+                            textVerificationStatus.setText("Статус: подтверждён ✓");
+                            textVerificationStatus.setTextColor(ContextCompat.getColor(this, R.color.switch_thumb_on));
+                        } else if ("pending".equals(verificationStatus)) {
+                            textVerificationStatus.setText("Статус: на проверке...");
+                            textVerificationStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
+                        } else {
+                            textVerificationStatus.setText("Статус: не проверен");
+                            textVerificationStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
+                        }
                     }
 
-                    if (user.has("master_status") && !user.get("master_status").isJsonNull()) {
-                        String status = user.get("master_status").getAsString();
-                        int pos = ((ArrayAdapter) spinnerStatus.getAdapter()).getPosition(status);
-                        if (pos >= 0) spinnerStatus.setSelection(pos);
+                    // Corporate ready (только для мастеров)
+                    if (isMaster) {
+                        String corp = getStringValue(user, "corporate_ready");
+                        if ("yes".equals(corp)) {
+                            radioGroupCorporate.check(R.id.radioCorporateYes);
+                        } else {
+                            radioGroupCorporate.check(R.id.radioCorporateNo);
+                        }
                     }
 
-                    if (user.has("has_scanner") && !user.get("has_scanner").isJsonNull()) {
-                        String equip = user.get("has_scanner").getAsString();
-                        if ("yes".equals(equip)) radioGroupEquipment.check(R.id.radioEquipmentYes);
-                        else radioGroupEquipment.check(R.id.radioEquipmentNo);
+                    // Master status (только для мастеров)
+                    if (isMaster) {
+                        String masterStatus = getStringValue(user, "master_status");
+                        if (!masterStatus.isEmpty()) {
+                            int pos = ((ArrayAdapter) spinnerStatus.getAdapter()).getPosition(masterStatus);
+                            if (pos >= 0) spinnerStatus.setSelection(pos);
+                        } else {
+                            spinnerStatus.setSelection(0);
+                        }
+                        Log.d(TAG, "Загружен статус: " + masterStatus);
+                    }
+
+                    // Наличие сканера (только для мастеров)
+                    if (isMaster) {
+                        String scanner = getStringValue(user, "has_scanner");
+                        if ("yes".equals(scanner)) {
+                            radioGroupEquipment.check(R.id.radioEquipmentYes);
+                        } else {
+                            radioGroupEquipment.check(R.id.radioEquipmentNo);
+                        }
                     }
                 });
+            } else {
+                runOnUiThread(() -> Toast.makeText(this, "Не удалось загрузить профиль", Toast.LENGTH_SHORT).show());
             }
         }).start();
+    }
+
+    // Вспомогательный метод: возвращает строку, если поле существует и не null, иначе пустую строку
+    private String getStringValue(JsonObject user, String key) {
+        if (user.has(key) && !user.get(key).isJsonNull()) {
+            return user.get(key).getAsString();
+        }
+        return "";
     }
 
     private void saveProfile() {
@@ -243,23 +331,27 @@ public class EditMasterProfileActivity extends AppCompatActivity {
         String phone = editPhone.getText().toString().trim();
         String city = editCity.getText().toString().trim();
 
-        int corpCheckedId = radioGroupCorporate.getCheckedRadioButtonId();
-        String corporateReady = (corpCheckedId == R.id.radioCorporateYes) ? "yes" : "no";
-
-        String masterStatus = spinnerStatus.getSelectedItem().toString();
-
-        int equipCheckedId = radioGroupEquipment.getCheckedRadioButtonId();
-        String hasScanner = (equipCheckedId == R.id.radioEquipmentYes) ? "yes" : "no";
-
         Map<String, Object> data = new HashMap<>();
         data.put("full_name", fullName);
         data.put("nickname", nickname);
         data.put("service_name", serviceName);
         data.put("phone", phone);
         data.put("city", city);
-        data.put("corporate_ready", corporateReady);
-        data.put("master_status", masterStatus);
-        data.put("has_scanner", hasScanner);
+
+        // Для мастеров сохраняем дополнительные поля
+        String role = PocketBaseClient.getUserRole();
+        if ("master".equals(role) || "admin".equals(role)) {
+            int corpCheckedId = radioGroupCorporate.getCheckedRadioButtonId();
+            String corporateReady = (corpCheckedId == R.id.radioCorporateYes) ? "yes" : "no";
+            data.put("corporate_ready", corporateReady);
+
+            String masterStatus = spinnerStatus.getSelectedItem().toString();
+            data.put("master_status", masterStatus);
+
+            int equipCheckedId = radioGroupEquipment.getCheckedRadioButtonId();
+            String hasScanner = (equipCheckedId == R.id.radioEquipmentYes) ? "yes" : "no";
+            data.put("has_scanner", hasScanner);
+        }
 
         if (selectedAvatarUri != null) {
             uploadAvatarThenSave(data);
@@ -295,9 +387,9 @@ public class EditMasterProfileActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 if (success) {
                     Toast.makeText(this, "Профиль сохранён", Toast.LENGTH_SHORT).show();
-                    finish();
+                    loadProfile();
                 } else {
-                    Toast.makeText(this, "Ошибка сохранения", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Ошибка сохранения. Проверьте интернет и права.", Toast.LENGTH_LONG).show();
                 }
             });
         }).start();

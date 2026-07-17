@@ -4,13 +4,15 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
-    android:background="@color/background_dark">
+    android:background="@color/background_dark"
+    android:fitsSystemWindows="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="16dp"
+        android:paddingBottom="32dp">
 
         <!-- Аватар -->
         <LinearLayout
@@ -123,108 +125,138 @@
             android:backgroundTint="@color/orange_accent"
             android:layout_marginBottom="16dp" />
 
-        <!-- Готов к корпоративным клиентам -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Готов выполнять заказы корпоративных клиентов?"
-            android:textColor="@color/text_secondary"
-            android:layout_marginBottom="8dp" />
-        <RadioGroup
-            android:id="@+id/radioGroupCorporate"
+        <!-- ============ ГРУППА: ГОТОВ К КОРПОРАТИВНЫМ ============ -->
+        <LinearLayout
+            android:id="@+id/groupCorporate"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:orientation="vertical"
             android:layout_marginBottom="16dp">
-            <RadioButton
-                android:id="@+id/radioCorporateYes"
+
+            <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Да"
-                android:textColor="@color/text_primary" />
-            <RadioButton
-                android:id="@+id/radioCorporateNo"
+                android:text="Готов выполнять заказы корпоративных клиентов?"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="8dp" />
+            <RadioGroup
+                android:id="@+id/radioGroupCorporate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <RadioButton
+                    android:id="@+id/radioCorporateYes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Да"
+                    android:textColor="@color/text_primary" />
+                <RadioButton
+                    android:id="@+id/radioCorporateNo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Нет"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginStart="16dp" />
+            </RadioGroup>
+        </LinearLayout>
+
+        <!-- ============ ГРУППА: СТАТУС МАСТЕРА ============ -->
+        <LinearLayout
+            android:id="@+id/groupStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp">
+
+            <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Нет"
-                android:textColor="@color/text_primary"
-                android:layout_marginStart="16dp" />
-        </RadioGroup>
+                android:text="Статус мастера"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="4dp" />
+            <Spinner
+                android:id="@+id/spinnerStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
 
-        <!-- Статус мастера -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Статус мастера"
-            android:textColor="@color/text_secondary"
-            android:layout_marginBottom="4dp" />
-        <Spinner
-            android:id="@+id/spinnerStatus"
+        <!-- ============ ГРУППА: НАЛИЧИЕ СКАНЕРА ============ -->
+        <LinearLayout
+            android:id="@+id/groupEquipment"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp" />
-
-        <!-- Наличие сканера -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Наличие специального оборудования (сканеров)"
-            android:textColor="@color/text_secondary"
-            android:layout_marginBottom="8dp" />
-        <RadioGroup
-            android:id="@+id/radioGroupEquipment"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:orientation="vertical"
             android:layout_marginBottom="24dp">
-            <RadioButton
-                android:id="@+id/radioEquipmentYes"
+
+            <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Есть"
-                android:textColor="@color/text_primary" />
-            <RadioButton
-                android:id="@+id/radioEquipmentNo"
+                android:text="Наличие специального оборудования (сканеров)"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="8dp" />
+            <RadioGroup
+                android:id="@+id/radioGroupEquipment"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <RadioButton
+                    android:id="@+id/radioEquipmentYes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Есть"
+                    android:textColor="@color/text_primary" />
+                <RadioButton
+                    android:id="@+id/radioEquipmentNo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Нет"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginStart="16dp" />
+            </RadioGroup>
+        </LinearLayout>
+
+        <!-- ============ ГРУППА: ВЕРИФИКАЦИЯ ============ -->
+        <LinearLayout
+            android:id="@+id/groupVerification"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp">
+
+            <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Нет"
-                android:textColor="@color/text_primary"
-                android:layout_marginStart="16dp" />
-        </RadioGroup>
+                android:text="Подтверждение личности"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/orange_accent"
+                android:layout_marginTop="16dp" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Подтверждение личности"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@color/orange_accent"
-            android:layout_marginTop="16dp" />
+            <TextView
+                android:id="@+id/textVerificationStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Статус: не проверен"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary" />
 
-        <TextView
-            android:id="@+id/textVerificationStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Статус: не проверен"
-            android:textSize="14sp"
-            android:textColor="@color/text_secondary" />
+            <Button
+                android:id="@+id/buttonUploadPassport"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Загрузить фото паспорта"
+                android:backgroundTint="@color/orange_accent"
+                android:textColor="#1E1E1E"
+                android:layout_marginTop="8dp" />
 
-        <Button
-            android:id="@+id/buttonUploadPassport"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Загрузить фото паспорта"
-            android:backgroundTint="@color/orange_accent"
-            android:textColor="#1E1E1E"
-            android:layout_marginTop="8dp" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Требуется фото разворота. После проверки администратором откроется доступ к форуму и заказам."
-            android:textSize="12sp"
-            android:textColor="@color/text_secondary"
-            android:layout_marginTop="4dp" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Требуется фото разворота. После проверки администратором откроется доступ к форуму и заказам."
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
 
         <!-- Кнопка сохранения -->
         <Button
@@ -236,6 +268,31 @@
             android:textColor="#1E1E1E"
             android:padding="12dp"
             android:textSize="16sp" />
+
+        <!-- Кнопка выхода -->
+        <Button
+            android:id="@+id/buttonLogout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Выйти из аккаунта"
+            android:backgroundTint="@color/orange_accent"
+            android:textColor="#1E1E1E"
+            android:padding="12dp"
+            android:textSize="16sp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Кнопка "Информация о приложении" -->
+        <Button
+            android:id="@+id/buttonAbout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Информация о приложении"
+            android:backgroundTint="@color/button_secondary"
+            android:textColor="@color/text_secondary"
+            android:padding="12dp"
+            android:textSize="16sp"
+            android:layout_marginTop="8dp" />
 
     </LinearLayout>
 </ScrollView>

@@ -5,6 +5,8 @@ import android.view.View;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.gson.JsonObject;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -34,7 +36,6 @@ public class ClientOrderCreationActivity extends AppCompatActivity {
             return;
         }
 
-        // Инициализация виджетов
         spinnerCity = findViewById(R.id.spinnerCity);
         spinnerVehicleType = findViewById(R.id.spinnerVehicleType);
         spinnerMasterType = findViewById(R.id.spinnerMasterType);
@@ -52,10 +53,8 @@ public class ClientOrderCreationActivity extends AppCompatActivity {
         buttonCreateOrder = findViewById(R.id.buttonCreateOrder);
         layoutMkadDistance = findViewById(R.id.layoutMkadDistance);
 
-        // Заполнение спиннеров (как в админке)
         setupSpinners();
 
-        // Слушатель для показа/скрытия поля "км за МКАД"
         spinnerCity.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -74,31 +73,26 @@ public class ClientOrderCreationActivity extends AppCompatActivity {
     }
 
     private void setupSpinners() {
-        // Города
         ArrayAdapter<CharSequence> cityAdapter = ArrayAdapter.createFromResource(this,
                 R.array.cities_array, android.R.layout.simple_spinner_item);
         cityAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerCity.setAdapter(cityAdapter);
 
-        // Тип ТС
         ArrayAdapter<CharSequence> vehicleAdapter = ArrayAdapter.createFromResource(this,
                 R.array.vehicle_types_array, android.R.layout.simple_spinner_item);
         vehicleAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerVehicleType.setAdapter(vehicleAdapter);
 
-        // Тип мастера
         ArrayAdapter<CharSequence> masterAdapter = ArrayAdapter.createFromResource(this,
                 R.array.master_types_array, android.R.layout.simple_spinner_item);
         masterAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerMasterType.setAdapter(masterAdapter);
 
-        // Способ оплаты
         ArrayAdapter<CharSequence> paymentAdapter = ArrayAdapter.createFromResource(this,
                 R.array.payment_methods_array, android.R.layout.simple_spinner_item);
         paymentAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerPaymentMethod.setAdapter(paymentAdapter);
 
-        // Таблица цен (как в админке)
         initPriceTable();
     }
 
@@ -119,7 +113,6 @@ public class ClientOrderCreationActivity extends AppCompatActivity {
     }
 
     private void createOrder() {
-        // Проверка обязательных полей
         String clientName = editClientName.getText().toString().trim();
         String clientPhone = editClientPhone.getText().toString().trim();
         String address = editAddress.getText().toString().trim();
@@ -136,7 +129,6 @@ public class ClientOrderCreationActivity extends AppCompatActivity {
         String paymentMethod = spinnerPaymentMethod.getSelectedItem().toString();
         boolean priceByAgreement = checkPriceByAgreement.isChecked();
 
-        // Рассчитываем цену (скрыто от клиента)
         int estimatedPrice = 0;
         if (!priceByAgreement) {
             int basePrice = 0;
@@ -149,8 +141,15 @@ public class ClientOrderCreationActivity extends AppCompatActivity {
                     extraKm = Integer.parseInt(editDistanceMkad.getText().toString());
                 } catch (NumberFormatException ignored) {}
             }
-            estimatedPrice = basePrice + (extraKm * 100); // 100 руб/км за МКАД
+            estimatedPrice = basePrice + (extraKm * 100);
         }
+
+        int distance = 0;
+        try {
+            distance = Integer.parseInt(editDistanceMkad.getText().toString());
+        } catch (NumberFormatException ignored) {}
+
+        long orderNumber = getNextOrderNumber();
 
         String orderId = UUID.randomUUID().toString();
         Order order = new Order(
@@ -172,7 +171,7 @@ public class ClientOrderCreationActivity extends AppCompatActivity {
                 clientName,
                 clientPhone,
                 city,
-                Integer.parseInt(editDistanceMkad.getText().toString()),
+                distance,
                 masterType,
                 paymentMethod,
                 priceByAgreement,
@@ -190,5 +189,40 @@ public class ClientOrderCreationActivity extends AppCompatActivity {
                 }
             });
         }).start();
+    }
+
+    private long getNextOrderNumber() {
+        try {
+            String url = PocketBaseClient.getBaseUrl() + "/api/collections/counters/records?filter=name='order_counter'&perPage=1";
+            okhttp3.Request request = new okhttp3.Request.Builder()
+                    .url(url)
+                    .header("Authorization", PocketBaseClient.getAuthToken())
+                    .get()
+                    .build();
+            okhttp3.Response response = PocketBaseClient.getClient().newCall(request).execute();
+            if (response.isSuccessful()) {
+                JsonObject result = PocketBaseClient.getGson().fromJson(response.body().string(), JsonObject.class);
+                if (result.has("items") && result.getAsJsonArray("items").size() > 0) {
+                    JsonObject counter = result.getAsJsonArray("items").get(0).getAsJsonObject();
+                    long current = counter.get("value").getAsLong();
+                    long newValue = current + 1;
+                    String counterId = counter.get("id").getAsString();
+                    JsonObject updateBody = new JsonObject();
+                    updateBody.addProperty("value", newValue);
+                    okhttp3.Request updateRequest = new okhttp3.Request.Builder()
+                            .url(PocketBaseClient.getBaseUrl() + "/api/collections/counters/records/" + counterId)
+                            .header("Authorization", PocketBaseClient.getAuthToken())
+                            .patch(okhttp3.RequestBody.create(PocketBaseClient.getGson().toJson(updateBody), okhttp3.MediaType.parse("application/json")))
+                            .build();
+                    okhttp3.Response updateResponse = PocketBaseClient.getClient().newCall(updateRequest).execute();
+                    if (updateResponse.isSuccessful()) {
+                        return newValue;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return System.currentTimeMillis();
     }
 }

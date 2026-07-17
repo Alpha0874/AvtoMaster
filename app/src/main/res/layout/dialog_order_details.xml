@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/background_dark"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/dialogService"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Услуга: "
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/dialogAddress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Адрес: "
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/dialogDescription"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Описание: "
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/dialogVehicle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Авто: "
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/dialogCity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Город: "
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/dialogClientName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Заказчик: "
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/dialogClientPhone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Телефон: "
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/dialogStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Статус: "
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/dialogCreated"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Создан: "
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp"
+            android:layout_marginBottom="16dp" />
+
+        <Button
+            android:id="@+id/btnCallClient"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📞 Позвонить заказчику"
+            android:backgroundTint="@color/orange_accent"
+            android:textColor="@color/background_dark"
+            android:padding="12dp"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btnCompleteOrder"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="✅ Завершить заказ"
+            android:backgroundTint="@color/switch_thumb_on"
+            android:textColor="@color/background_dark"
+            android:padding="12dp"
+            android:visibility="gone"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btnCloseDialog"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Закрыть"
+            android:backgroundTint="@color/button_secondary"
+            android:textColor="@color/text_secondary"
+            android:padding="12dp" />
+
+    </LinearLayout>
+</ScrollView>

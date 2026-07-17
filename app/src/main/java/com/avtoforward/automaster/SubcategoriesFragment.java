@@ -69,7 +69,7 @@ public class SubcategoriesFragment extends Fragment {
                     listView.setOnItemClickListener((parent, view1, position, id) -> {
                         String subcategoryId = subcategoryIds.get(position);
                         String subcategoryName = subcategoryNames.get(position);
-                        ForumTopicsFragment topicsFragment = new ForumTopicsFragment(subcategoryId, subcategoryName);
+                        com.avtoforward.automaster.fragments.ForumTopicsFragment topicsFragment = new com.avtoforward.automaster.fragments.ForumTopicsFragment(subcategoryId, subcategoryName);
                         requireActivity().getSupportFragmentManager().beginTransaction()
                                 .replace(R.id.container, topicsFragment)
                                 .addToBackStack(null)
