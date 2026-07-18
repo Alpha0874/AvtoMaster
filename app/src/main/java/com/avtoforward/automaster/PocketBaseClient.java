@@ -35,7 +35,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class PocketBaseClient {
-    private static final String BASE_URL = "http://192.168.0.11:8090";
+    private static final String BASE_URL = "http://195.133.52.115:8090";
     private static final String PREFS_NAME = "pocketbase_prefs";
     private static final String KEY_TOKEN = "auth_token";
     private static final String KEY_USER_ID = "user_id";

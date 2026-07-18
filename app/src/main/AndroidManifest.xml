@@ -34,10 +34,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity android:name=".MainActivity" android:windowSoftInputMode="adjustPan" android:exported="false" />
         <activity android:name=".MasterActivity" android:exported="false" />
         <activity android:name=".ForumActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".OrderCreationActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".OrderPreviewActivity" android:exported="false" />
         <activity android:name=".UserProfileActivity" android:exported="false" />
         <activity android:name=".PremiumActivity" android:exported="false" />
         <activity android:name=".LoginActivity" android:exported="false" />
@@ -52,14 +54,17 @@
         <activity android:name=".StatisticsActivity" android:exported="false" />
         <activity android:name=".CompletedOrdersActivity" android:exported="false" />
         <activity android:name=".AdminActivity" android:exported="false" />
-        <!-- AboutActivity лежит в корневом пакете com.avtoforward.automaster -->
         <activity android:name=".AboutActivity" android:exported="false" />
-        <activity android:name=".OrderPreviewActivity" android:exported="false" />
+        <activity android:name=".ClientProfileEditActivity" android:exported="false" />
 
         <!-- Сервисы -->
-        <service android:name=".ForegroundNotificationService" android:exported="false" android:foregroundServiceType="dataSync" />
-        <service android:name=".ForumNotificationService" android:exported="false" />
-        <activity android:name=".ClientProfileEditActivity" android:exported="false" />
+        <service
+            android:name=".ForegroundNotificationService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+        <service
+            android:name=".ForumNotificationService"
+            android:exported="false" />
 
         <!-- FileProvider -->
         <provider
@@ -71,5 +76,6 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
     </application>
 </manifest>
