@@ -10,6 +10,7 @@ import android.os.Looper;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
+import com.avtoforward.automaster.utils.SessionManager;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -89,9 +90,32 @@ public class PocketBaseClient {
         if (prefs != null) {
             prefs.edit().remove(KEY_TOKEN).remove(KEY_USER_ID).apply();
             Log.d("PocketBase", "SharedPreferences cleared");
-            if (appContext != null) {
+        }
+        // Очистка SessionManager
+        if (appContext != null) {
+            try {
+                SessionManager sessionManager = new SessionManager(appContext);
+                sessionManager.logout();
+                Log.d("PocketBase", "SessionManager cleared");
+            } catch (Exception e) {
+                Log.e("PocketBase", "Error clearing SessionManager", e);
+            }
+            // Остановка сервиса уведомлений
+            try {
                 Intent intent = new Intent(appContext, ForegroundNotificationService.class);
                 appContext.stopService(intent);
+                Log.d("PocketBase", "Notification service stopped");
+            } catch (Exception e) {
+                Log.e("PocketBase", "Error stopping service", e);
+            }
+            // Переход на экран выбора роли
+            try {
+                Intent roleIntent = new Intent(appContext, RoleSelectionActivity.class);
+                roleIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                appContext.startActivity(roleIntent);
+                Log.d("PocketBase", "Redirected to RoleSelectionActivity");
+            } catch (Exception e) {
+                Log.e("PocketBase", "Error starting RoleSelectionActivity", e);
             }
         }
     }
@@ -700,28 +724,35 @@ public class PocketBaseClient {
         return 0;
     }
 
-    // ==================== НОВЫЕ СООБЩЕНИЯ ====================
+    // ==================== НОВЫЕ СООБЩЕНИЯ (ИСПРАВЛЕННАЯ ВЕРСИЯ) ====================
     public static JsonObject getNewMessagesSince(long lastTimestamp) {
-        if (!isLoggedIn()) return null;
+        if (!isLoggedIn()) {
+            Log.e("PocketBase", "getNewMessagesSince: not logged in");
+            return null;
+        }
         try {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
-            sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-            String lastTimeStr = sdf.format(new Date(lastTimestamp));
-            String filter = "created > '" + lastTimeStr + "'";
+            // ВРЕМЕННО: убираем фильтр, получаем все сообщения
+            String url = BASE_URL + "/api/collections/forum_messages/records?sort=created&expand=author&perPage=100";
+            Log.d("PocketBase", "getNewMessagesSince URL (без фильтра): " + url);
             Request request = new Request.Builder()
-                    .url(BASE_URL + "/api/collections/forum_messages/records?filter=" + java.net.URLEncoder.encode(filter, "UTF-8") + "&sort=created&expand=author")
+                    .url(url)
                     .header("Authorization", authToken)
                     .get()
                     .build();
             try (Response response = client.newCall(request).execute()) {
+                String responseBody = response.body() != null ? response.body().string() : "";
+                Log.d("PocketBase", "getNewMessagesSince response code: " + response.code() + ", body: " + responseBody);
                 if (response.isSuccessful()) {
-                    return gson.fromJson(response.body().string(), JsonObject.class);
+                    return gson.fromJson(responseBody, JsonObject.class);
+                } else {
+                    Log.e("PocketBase", "getNewMessagesSince failed with code " + response.code() + ": " + responseBody);
+                    return null;
                 }
             }
         } catch (Exception e) {
             Log.e("PocketBase", "getNewMessagesSince error", e);
+            return null;
         }
-        return null;
     }
 
     // ==================== ДОКУМЕНТАЦИЯ ====================

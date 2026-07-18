@@ -28,7 +28,6 @@ public class MasterActivity extends AppCompatActivity {
 
         navHome.setOnClickListener(v -> showFragment(new MenuFragment()));
         navForum.setOnClickListener(v -> startActivity(new Intent(this, ForumActivity.class)));
-        // ✅ Исправлено: открываем ActiveOrdersActivity (новые заказы)
         navOrders.setOnClickListener(v -> startActivity(new Intent(this, ActiveOrdersActivity.class)));
         navStatistics.setOnClickListener(v -> startActivity(new Intent(this, StatisticsActivity.class)));
         navProfile.setOnClickListener(v -> startActivity(new Intent(this, EditMasterProfileActivity.class)));
@@ -36,11 +35,24 @@ public class MasterActivity extends AppCompatActivity {
         if (savedInstanceState == null) {
             showFragment(new MenuFragment());
         }
+
+        // ✅ ЗАПУСКАЕМ СЕРВИС УВЕДОМЛЕНИЙ (если ещё не запущен)
+        Intent serviceIntent = new Intent(this, ForegroundNotificationService.class);
+        startService(serviceIntent);
     }
 
     private void showFragment(Fragment fragment) {
         getSupportFragmentManager().beginTransaction()
                 .replace(R.id.container, fragment)
                 .commit();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Обновляем последнюю активность
+        if (PocketBaseClient.isLoggedIn()) {
+            new Thread(PocketBaseClient::updateLastOnline).start();
+        }
     }
 }

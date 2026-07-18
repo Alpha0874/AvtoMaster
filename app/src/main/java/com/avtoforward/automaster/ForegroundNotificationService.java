@@ -5,11 +5,12 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
@@ -17,199 +18,287 @@ import androidx.core.app.NotificationCompat;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-import java.util.ArrayList;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.TimeZone;
 
 public class ForegroundNotificationService extends Service {
 
-    private static final String TAG = "ForegroundNotif";
-    private static final int NOTIF_ID = 1001;
-    private static final String CHANNEL_ID = "avtomaster_channel";
+    private static final String TAG = "ForegroundService";
+    private static final String CHANNEL_ID = "avtomaster_foreground";
+    private static final int NOTIFICATION_ID = 1001;
+    private static final long POLL_INTERVAL = 3000; // 3 секунды
+    private static final String PREFS_NAME = "notification_prefs";
+    private static final String KEY_LAST_CHECK_TIME = "last_check_time";
 
-    private Handler handler;
-    private Runnable checkRunnable;
-    private int lastOrderCount = 0;
-    private int lastMessageCount = 0;
-    private String masterId;
-    private boolean isMaster = false;
+    private Handler handler = new Handler();
+    private Runnable pollRunnable;
+    private Set<String> shownOrderIds = new HashSet<>();
+    private Set<String> shownMessageIds = new HashSet<>();
+    private SharedPreferences prefs;
+    private SimpleDateFormat dateFormat;
 
     @Override
     public void onCreate() {
         super.onCreate();
+        Log.d(TAG, "✅ Foreground service CREATED");
+        prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        // Формат даты, который приходит от PocketBase: "2026-06-25 08:35:54.125Z"
+        dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS'Z'", Locale.US);
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         createNotificationChannel();
-        handler = new Handler(Looper.getMainLooper());
+        startForeground(NOTIFICATION_ID, getServiceNotification());
+        loadShownIds();
+        startPolling();
+        Log.d(TAG, "✅ Service started, polling every " + POLL_INTERVAL + " ms");
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        // Показываем уведомление о том, что сервис работает
-        startForeground(NOTIF_ID, createForegroundNotification());
-
-        // Получаем ID текущего пользователя
-        masterId = PocketBaseClient.getCurrentUserId();
-        if (masterId == null) {
-            Log.e(TAG, "Пользователь не авторизован, сервис остановлен");
-            stopSelf();
-            return START_NOT_STICKY;
-        }
-
-        // Определяем, мастер ли пользователь
-        String role = PocketBaseClient.getUserRole();
-        isMaster = "master".equals(role);
-
-        // Запускаем периодическую проверку
-        startChecking();
-
+        Log.d(TAG, "onStartCommand called");
         return START_STICKY;
-    }
-
-    private void startChecking() {
-        if (checkRunnable != null) {
-            handler.removeCallbacks(checkRunnable);
-        }
-
-        checkRunnable = new Runnable() {
-            @Override
-            public void run() {
-                checkNewItems();
-                handler.postDelayed(this, 30000); // проверка каждые 30 секунд
-            }
-        };
-        handler.post(checkRunnable);
-    }
-
-    private void checkNewItems() {
-        if (!PocketBaseClient.isLoggedIn()) {
-            return;
-        }
-
-        new Thread(() -> {
-            try {
-                // Если пользователь — мастер, проверяем новые заказы
-                if (isMaster && PocketBaseClient.isAcceptingOrders(masterId)) {
-                    checkNewOrders();
-                }
-
-                // Проверяем новые сообщения в форуме (для всех пользователей)
-                checkNewMessages();
-
-            } catch (Exception e) {
-                Log.e(TAG, "Ошибка проверки", e);
-            }
-        }).start();
-    }
-
-    private void checkNewOrders() {
-        try {
-            List<Order> orders = PocketBaseClient.getNewOrders();
-            int currentCount = orders != null ? orders.size() : 0;
-
-            if (currentCount > lastOrderCount) {
-                int newCount = currentCount - lastOrderCount;
-                showNotification(
-                        "Новый заказ!",
-                        "Поступило " + newCount + " новых заказов",
-                        new Intent(this, ActiveOrdersActivity.class)
-                );
-            }
-            lastOrderCount = currentCount;
-
-        } catch (Exception e) {
-            Log.e(TAG, "Ошибка проверки заказов", e);
-        }
-    }
-
-    private void checkNewMessages() {
-        try {
-            // Получаем все темы, где пользователь участвовал
-            // Упрощённо: проверяем все сообщения за последние 30 секунд
-            long lastCheckTime = System.currentTimeMillis() - 30000;
-
-            JsonObject result = PocketBaseClient.getNewMessagesSince(lastCheckTime);
-            if (result != null && result.has("items")) {
-                JsonArray items = result.getAsJsonArray("items");
-                int currentCount = items.size();
-
-                if (currentCount > lastMessageCount) {
-                    int newCount = currentCount - lastMessageCount;
-                    // Показываем уведомление только если это не сообщение от текущего пользователя
-                    // (упрощённо: проверяем, что автор не текущий)
-                    for (int i = 0; i < items.size(); i++) {
-                        JsonObject msg = items.get(i).getAsJsonObject();
-                        String authorId = msg.get("author").getAsString();
-                        if (!authorId.equals(masterId)) {
-                            showNotification(
-                                    "Новое сообщение в форуме",
-                                    "Появилось новое сообщение",
-                                    new Intent(this, ForumActivity.class)
-                            );
-                            break;
-                        }
-                    }
-                }
-                lastMessageCount = currentCount;
-            }
-
-        } catch (Exception e) {
-            Log.e(TAG, "Ошибка проверки сообщений", e);
-        }
-    }
-
-    private void showNotification(String title, String text, Intent intent) {
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                this, 0, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
-                .setContentTitle(title)
-                .setContentText(text)
-                .setAutoCancel(true)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setContentIntent(pendingIntent);
-
-        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        if (manager != null) {
-            manager.notify((int) System.currentTimeMillis(), builder.build());
-        }
-    }
-
-    private Notification createForegroundNotification() {
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
-                .setContentTitle("АвтоТехПомощь")
-                .setContentText("Приложение работает в фоне")
-                .setPriority(NotificationCompat.PRIORITY_LOW);
-
-        return builder.build();
-    }
-
-    private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "Уведомления АвтоТехПомощь",
-                    NotificationManager.IMPORTANCE_HIGH
-            );
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            if (manager != null) {
-                manager.createNotificationChannel(channel);
-            }
-        }
     }
 
     @Override
     public void onDestroy() {
-        super.onDestroy();
-        if (handler != null && checkRunnable != null) {
-            handler.removeCallbacks(checkRunnable);
+        Log.d(TAG, "❌ Service destroyed");
+        if (handler != null && pollRunnable != null) {
+            handler.removeCallbacks(pollRunnable);
         }
-        Log.d(TAG, "Сервис остановлен");
+        saveShownIds();
+        super.onDestroy();
     }
 
     @Override
     public IBinder onBind(Intent intent) {
         return null;
+    }
+
+    private void startPolling() {
+        pollRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (PocketBaseClient.isLoggedIn()) {
+                    Log.d(TAG, "🔄 Polling... (user logged in)");
+                    new Thread(() -> checkNewOrders()).start();
+                    new Thread(() -> checkNewForumMessages()).start();
+                } else {
+                    Log.d(TAG, "⏳ User not logged in, skipping poll");
+                }
+                handler.postDelayed(this, POLL_INTERVAL);
+            }
+        };
+        handler.post(pollRunnable);
+    }
+
+    // === Проверка новых заказов ===
+
+    private void checkNewOrders() {
+        try {
+            Log.d(TAG, "📦 Checking new orders...");
+            List<Order> newOrders = PocketBaseClient.getNewOrders();
+            Log.d(TAG, "📦 Found " + newOrders.size() + " new orders");
+            for (Order order : newOrders) {
+                String orderId = order.getId();
+                if (!shownOrderIds.contains(orderId)) {
+                    shownOrderIds.add(orderId);
+                    Log.d(TAG, "🔔 New order detected: " + orderId);
+                    String title = "🔧 Новый заказ!";
+                    String body = "Заказ #" + orderId.substring(0, 6) + " | " + order.getService();
+                    runOnUiThread(() -> showNotification(title, body, "order", orderId));
+                } else {
+                    Log.d(TAG, "⏩ Order " + orderId + " already shown, skipping");
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Error checking orders", e);
+        }
+    }
+
+    // === Проверка новых сообщений форума (исправленный парсинг даты) ===
+
+    private void checkNewForumMessages() {
+        try {
+            Log.d(TAG, "💬 Checking new forum messages...");
+            long lastCheck = prefs.getLong(KEY_LAST_CHECK_TIME, System.currentTimeMillis() - 60000);
+            JsonObject result = PocketBaseClient.getNewMessagesSince(lastCheck);
+            if (result == null) {
+                Log.d(TAG, "💬 getNewMessagesSince returned null");
+                return;
+            }
+            if (!result.has("items")) {
+                Log.d(TAG, "💬 No 'items' in response");
+                return;
+            }
+            JsonArray items = result.getAsJsonArray("items");
+            Log.d(TAG, "💬 Found " + items.size() + " new messages");
+            long newestTime = lastCheck;
+            for (int i = 0; i < items.size(); i++) {
+                JsonObject msg = items.get(i).getAsJsonObject();
+                String msgId = msg.get("id").getAsString();
+                String topicId = msg.get("topic_id").getAsString();
+                String authorId = msg.has("author") ? msg.get("author").getAsString() : "";
+
+                // Получаем имя автора из expand.author
+                String author = "Кто-то";
+                if (msg.has("expand") && msg.getAsJsonObject("expand").has("author")) {
+                    JsonObject authorObj = msg.getAsJsonObject("expand").getAsJsonObject("author");
+                    if (authorObj.has("nickname") && !authorObj.get("nickname").isJsonNull()) {
+                        author = authorObj.get("nickname").getAsString();
+                    } else if (authorObj.has("full_name") && !authorObj.get("full_name").isJsonNull()) {
+                        author = authorObj.get("full_name").getAsString();
+                    } else if (authorObj.has("email") && !authorObj.get("email").isJsonNull()) {
+                        author = authorObj.get("email").getAsString();
+                    }
+                }
+
+                // Пропускаем свои сообщения
+                if (authorId.equals(PocketBaseClient.getCurrentUserId())) {
+                    Log.d(TAG, "⏩ Skipping own message: " + msgId);
+                    continue;
+                }
+
+                if (!shownMessageIds.contains(msgId)) {
+                    shownMessageIds.add(msgId);
+                    Log.d(TAG, "🔔 New forum message detected: " + msgId);
+                    String title = "💬 Новое сообщение в форуме";
+                    String body = "От " + author + ": " + getMessagePreview(msg);
+                    runOnUiThread(() -> showNotification(title, body, "forum", topicId));
+                } else {
+                    Log.d(TAG, "⏩ Message " + msgId + " already shown");
+                }
+
+                // Правильный парсинг даты
+                try {
+                    String createdStr = msg.get("created").getAsString();
+                    long createdAt = dateFormat.parse(createdStr).getTime();
+                    if (createdAt > newestTime) {
+                        newestTime = createdAt;
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "❌ Error parsing date for message " + msgId, e);
+                }
+            }
+            if (newestTime > lastCheck) {
+                prefs.edit().putLong(KEY_LAST_CHECK_TIME, newestTime).apply();
+                Log.d(TAG, "💬 Updated last check time to " + newestTime);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Error checking forum messages", e);
+        }
+    }
+
+    private String getMessagePreview(JsonObject msg) {
+        String text = msg.has("message_text") ? msg.get("message_text").getAsString() : "";
+        if (text.length() > 30) {
+            return text.substring(0, 30) + "...";
+        }
+        return text;
+    }
+
+    // === Вспомогательные методы ===
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID,
+                    "Сервис АвтоТехПомощь",
+                    NotificationManager.IMPORTANCE_LOW
+            );
+            channel.setDescription("Обеспечивает работу уведомлений в фоне");
+            NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            manager.createNotificationChannel(channel);
+            Log.d(TAG, "✅ Notification channel created");
+        }
+    }
+
+    private Notification getServiceNotification() {
+        Intent intent = new Intent(this, MainActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+        return new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("АвтоТехПомощь")
+                .setContentText("Приложение работает в фоне")
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentIntent(pendingIntent)
+                .build();
+    }
+
+    private void showNotification(String title, String body, String type, String id) {
+        Log.d(TAG, "📢 Showing notification: " + title + " - " + body);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    "avtomaster_channel",
+                    "Уведомления приложения",
+                    NotificationManager.IMPORTANCE_HIGH
+            );
+            NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            manager.createNotificationChannel(channel);
+        }
+
+        Intent intent;
+        if ("order".equals(type)) {
+            intent = new Intent(this, ActiveOrdersActivity.class);
+            intent.putExtra("order_id", id);
+        } else if ("forum".equals(type)) {
+            intent = new Intent(this, ForumActivity.class);
+            intent.putExtra("topic_id", id);
+        } else {
+            intent = new Intent(this, MainActivity.class);
+        }
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "avtomaster_channel")
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentTitle(title)
+                .setContentText(body)
+                .setAutoCancel(true)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(pendingIntent);
+
+        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        manager.notify((int) System.currentTimeMillis(), builder.build());
+        Log.d(TAG, "✅ Notification shown");
+    }
+
+    private void runOnUiThread(Runnable action) {
+        if (action != null) {
+            new Handler(getMainLooper()).post(action);
+        }
+    }
+
+    private void loadShownIds() {
+        String ids = prefs.getString("shown_order_ids", "");
+        if (!ids.isEmpty()) {
+            for (String id : ids.split(",")) {
+                shownOrderIds.add(id);
+            }
+        }
+        ids = prefs.getString("shown_message_ids", "");
+        if (!ids.isEmpty()) {
+            for (String id : ids.split(",")) {
+                shownMessageIds.add(id);
+            }
+        }
+        Log.d(TAG, "Loaded shown IDs: orders=" + shownOrderIds.size() + ", messages=" + shownMessageIds.size());
+    }
+
+    private void saveShownIds() {
+        String orderIds = String.join(",", shownOrderIds);
+        String messageIds = String.join(",", shownMessageIds);
+        prefs.edit()
+                .putString("shown_order_ids", orderIds)
+                .putString("shown_message_ids", messageIds)
+                .apply();
+        Log.d(TAG, "Saved shown IDs");
     }
 }

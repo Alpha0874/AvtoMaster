@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 
 import static android.Manifest.permission.CAMERA;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
@@ -255,10 +256,15 @@ public class ForumChatFragment extends Fragment implements ChatAdapter.OnMessage
                 if (result != null && result.has("items")) {
                     JsonArray items = result.getAsJsonArray("items");
                     Log.d(TAG, "items count: " + items.size());
-                    List<ChatMessage> newMessages = new ArrayList<>();
-                    SimpleDateFormat sdfInput = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS'Z'", Locale.US);
-                    SimpleDateFormat sdfOutput = new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault());
 
+                    // Форматы для парсинга даты с учётом UTC
+                    SimpleDateFormat sdfInput = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS'Z'", Locale.US);
+                    sdfInput.setTimeZone(TimeZone.getTimeZone("UTC"));
+                    // Формат для отображения (локальное время)
+                    SimpleDateFormat sdfOutput = new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault());
+                    sdfOutput.setTimeZone(TimeZone.getDefault());
+
+                    List<ChatMessage> newMessages = new ArrayList<>();
                     for (int i = 0; i < items.size(); i++) {
                         try {
                             JsonObject item = items.get(i).getAsJsonObject();
@@ -279,11 +285,10 @@ public class ForumChatFragment extends Fragment implements ChatAdapter.OnMessage
 
                             String authorId = "";
                             String authorName = "Пользователь";
-                            String city = ""; // город автора
+                            String city = "";
                             if (item.has("expand") && item.getAsJsonObject("expand").has("author")) {
                                 JsonObject author = item.getAsJsonObject("expand").getAsJsonObject("author");
                                 authorId = author.get("id").getAsString();
-                                // Получаем никнейм
                                 if (author.has("nickname") && !author.get("nickname").isJsonNull()) {
                                     String nickname = author.get("nickname").getAsString();
                                     authorName = nickname.isEmpty() ? author.get("email").getAsString() : nickname;
@@ -293,7 +298,6 @@ public class ForumChatFragment extends Fragment implements ChatAdapter.OnMessage
                                 } else {
                                     authorName = author.get("email").getAsString();
                                 }
-                                // Получаем город
                                 if (author.has("city") && !author.get("city").isJsonNull()) {
                                     city = author.get("city").getAsString();
                                 }
@@ -317,7 +321,6 @@ public class ForumChatFragment extends Fragment implements ChatAdapter.OnMessage
                                 }
                             }
 
-                            // Создаём ChatMessage с временем (уже с городом)
                             ChatMessage chatMessage = new ChatMessage(id, authorId, authorName, messageText, imageUrls, formattedTime);
                             newMessages.add(chatMessage);
                         } catch (Exception e) {

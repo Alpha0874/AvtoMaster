@@ -1,5 +1,6 @@
 package com.avtoforward.automaster;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
 
@@ -35,6 +36,10 @@ public class MainActivity extends AppCompatActivity {
         if (savedInstanceState == null) {
             loadFragment(new ServicesFragment());
         }
+
+        // ✅ ЗАПУСКАЕМ СЕРВИС УВЕДОМЛЕНИЙ (если ещё не запущен)
+        Intent serviceIntent = new Intent(this, ForegroundNotificationService.class);
+        startService(serviceIntent);
     }
 
     private boolean onNavigationItemSelected(@NonNull MenuItem item) {

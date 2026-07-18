@@ -127,15 +127,13 @@ public class EditMasterProfileActivity extends AppCompatActivity {
         buttonSave.setOnClickListener(v -> saveProfile());
         buttonUploadPassport.setOnClickListener(v -> openCameraForPassport());
 
-        // Кнопка выхода
+        // Кнопка выхода - ИСПРАВЛЕННАЯ
         Button buttonLogout = findViewById(R.id.buttonLogout);
         if (buttonLogout != null) {
             buttonLogout.setOnClickListener(v -> {
+                // Вызываем единый метод выхода, который очистит всё и перенаправит
                 PocketBaseClient.logout();
-                Toast.makeText(this, "Вы вышли из аккаунта", Toast.LENGTH_SHORT).show();
-                Intent intent = new Intent(this, LoginActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                startActivity(intent);
+                // Закрываем эту Activity, потому что logout() уже перезапускает приложение
                 finish();
             });
         }
@@ -152,7 +150,7 @@ public class EditMasterProfileActivity extends AppCompatActivity {
         loadProfile();
     }
 
-    // ========== ОСТАЛЬНЫЕ МЕТОДЫ ==========
+    // ========== ОСТАЛЬНЫЕ МЕТОДЫ (без изменений) ==========
 
     private void showImageSourceDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);

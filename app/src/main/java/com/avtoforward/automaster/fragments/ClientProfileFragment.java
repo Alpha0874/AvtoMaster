@@ -13,9 +13,12 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 
 import com.avtoforward.automaster.ClientProfileEditActivity;
+import com.avtoforward.automaster.ForegroundNotificationService;
 import com.avtoforward.automaster.LoginActivity;
 import com.avtoforward.automaster.PocketBaseClient;
 import com.avtoforward.automaster.R;
+import com.avtoforward.automaster.RoleSelectionActivity;
+import com.avtoforward.automaster.utils.SessionManager;
 import com.google.gson.JsonObject;
 
 public class ClientProfileFragment extends Fragment {
@@ -40,9 +43,21 @@ public class ClientProfileFragment extends Fragment {
         });
 
         buttonLogout.setOnClickListener(v -> {
+            // Очищаем сессию через SessionManager
+            SessionManager sessionManager = new SessionManager(requireContext());
+            sessionManager.logout();
+
+            // Останавливаем сервис уведомлений
+            Intent serviceIntent = new Intent(getActivity(), ForegroundNotificationService.class);
+            getActivity().stopService(serviceIntent);
+
+            // Выходим из PocketBase (очищаем токен и т.д.)
             PocketBaseClient.logout();
+
             Toast.makeText(getContext(), "Вы вышли", Toast.LENGTH_SHORT).show();
-            Intent intent = new Intent(getActivity(), LoginActivity.class);
+
+            // Переходим на экран выбора роли (он сам проверит, что сессии нет, и покажет выбор)
+            Intent intent = new Intent(getActivity(), RoleSelectionActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
             requireActivity().finish();
