@@ -1,137 +1,93 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     android:padding="16dp"
-    android:background="@color/background_dark">
+    android:background="#121212"
+    android:gravity="center">
 
-    <LinearLayout
+    <ImageView
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:src="@android:drawable/ic_menu_edit"
+        android:layout_marginBottom="16dp"
+        android:contentDescription="@null" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Регистрация"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#FF9800"
+        android:layout_marginBottom="24dp" />
+
+    <EditText
+        android:id="@+id/editEmail"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center_horizontal">
+        android:hint="Email"
+        android:inputType="textEmailAddress"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#B0B0B0"
+        android:background="@drawable/input_background"
+        android:padding="12dp"
+        android:layout_marginBottom="12dp" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Регистрация"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:textColor="@color/orange_accent"
-            android:layout_marginBottom="24dp" />
+    <EditText
+        android:id="@+id/editPassword"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Пароль (мин. 6 символов)"
+        android:inputType="textPassword"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#B0B0B0"
+        android:background="@drawable/input_background"
+        android:padding="12dp"
+        android:layout_marginBottom="12dp" />
 
-        <!-- Email -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Email"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layout_marginBottom="12dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/editEmail"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textEmailAddress" />
-        </com.google.android.material.textfield.TextInputLayout>
+    <EditText
+        android:id="@+id/editPasswordConfirm"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Подтверждение пароля"
+        android:inputType="textPassword"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#B0B0B0"
+        android:background="@drawable/input_background"
+        android:padding="12dp"
+        android:layout_marginBottom="12dp" />
 
-        <!-- Никнейм (обязательное поле) -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Никнейм (отображаемое имя)"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layout_marginBottom="12dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/editNickname"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="text" />
-        </com.google.android.material.textfield.TextInputLayout>
+    <EditText
+        android:id="@+id/editNickname"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Никнейм (по желанию)"
+        android:inputType="text"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#B0B0B0"
+        android:background="@drawable/input_background"
+        android:padding="12dp"
+        android:layout_marginBottom="24dp" />
 
-        <!-- Пароль -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Пароль"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            app:endIconMode="password_toggle"
-            android:layout_marginBottom="12dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/editPassword"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textPassword" />
-        </com.google.android.material.textfield.TextInputLayout>
+    <Button
+        android:id="@+id/buttonRegister"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Зарегистрироваться"
+        android:backgroundTint="#FF9800"
+        android:textColor="#FFFFFF"
+        android:padding="12dp" />
 
-        <!-- Подтверждение пароля -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Подтвердите пароль"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            app:endIconMode="password_toggle"
-            android:layout_marginBottom="16dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/editConfirmPassword"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textPassword" />
-        </com.google.android.material.textfield.TextInputLayout>
+    <Button
+        android:id="@+id/buttonToLogin"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Уже есть аккаунт? Войти"
+        android:backgroundTint="#333333"
+        android:textColor="#FFFFFF"
+        android:layout_marginTop="8dp"
+        android:padding="12dp" />
 
-        <!-- Выбор роли -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Выберите роль"
-            android:textSize="16sp"
-            android:textColor="@color/text_primary"
-            android:layout_marginBottom="8dp" />
-
-        <RadioGroup
-            android:id="@+id/radioGroupRole"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:layout_marginBottom="24dp">
-
-            <RadioButton
-                android:id="@+id/radioClient"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Клиент"
-                android:textColor="@color/text_primary"
-                android:layout_marginEnd="32dp" />
-
-            <RadioButton
-                android:id="@+id/radioMaster"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Мастер"
-                android:textColor="@color/text_primary" />
-
-        </RadioGroup>
-
-        <!-- Кнопка регистрации -->
-        <Button
-            android:id="@+id/buttonRegister"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Зарегистрироваться"
-            android:backgroundTint="@color/orange_accent"
-            android:textColor="@color/background_dark"
-            android:paddingVertical="12dp" />
-
-        <!-- Кнопка перехода на вход -->
-        <Button
-            android:id="@+id/buttonToLogin"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Уже есть аккаунт? Войти"
-            android:backgroundTint="@color/button_secondary"
-            android:textColor="@color/text_secondary"
-            android:layout_marginTop="8dp" />
-
-    </LinearLayout>
-</ScrollView>
+</LinearLayout>

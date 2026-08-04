@@ -143,19 +143,6 @@ public class ForegroundNotificationService extends Service {
                 String topicId = msg.get("topic_id").getAsString();
                 String authorId = msg.has("author") ? msg.get("author").getAsString() : "";
 
-                // Получаем имя автора из expand.author
-                String author = "Кто-то";
-                if (msg.has("expand") && msg.getAsJsonObject("expand").has("author")) {
-                    JsonObject authorObj = msg.getAsJsonObject("expand").getAsJsonObject("author");
-                    if (authorObj.has("nickname") && !authorObj.get("nickname").isJsonNull()) {
-                        author = authorObj.get("nickname").getAsString();
-                    } else if (authorObj.has("full_name") && !authorObj.get("full_name").isJsonNull()) {
-                        author = authorObj.get("full_name").getAsString();
-                    } else if (authorObj.has("email") && !authorObj.get("email").isJsonNull()) {
-                        author = authorObj.get("email").getAsString();
-                    }
-                }
-
                 // Пропускаем свои сообщения
                 if (authorId.equals(PocketBaseClient.getCurrentUserId())) {
                     Log.d(TAG, "⏩ Skipping own message: " + msgId);
@@ -166,21 +153,23 @@ public class ForegroundNotificationService extends Service {
                     shownMessageIds.add(msgId);
                     Log.d(TAG, "🔔 New forum message detected: " + msgId);
                     String title = "💬 Новое сообщение в форуме";
-                    String body = "От " + author + ": " + getMessagePreview(msg);
-                    runOnUiThread(() -> showNotification(title, body, "forum", topicId));
+                    String body = "Кто-то написал в форуме";
+                    showNotification(title, body, "forum", topicId);
                 } else {
                     Log.d(TAG, "⏩ Message " + msgId + " already shown");
                 }
 
-                // Правильный парсинг даты
+                // Обновляем время последнего проверенного сообщения
                 try {
                     String createdStr = msg.get("created").getAsString();
-                    long createdAt = dateFormat.parse(createdStr).getTime();
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS'Z'", Locale.US);
+                    sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                    long createdAt = sdf.parse(createdStr).getTime();
                     if (createdAt > newestTime) {
                         newestTime = createdAt;
                     }
                 } catch (Exception e) {
-                    Log.e(TAG, "❌ Error parsing date for message " + msgId, e);
+                    Log.e(TAG, "Error parsing date", e);
                 }
             }
             if (newestTime > lastCheck) {

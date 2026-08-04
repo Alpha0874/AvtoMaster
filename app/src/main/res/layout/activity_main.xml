@@ -33,4 +33,14 @@
         app:itemTextColor="@color/bottom_nav_inactive_color"
         app:menu="@menu/menu_main_client" />
 
+    <Button
+        android:id="@+id/btnAdmin"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Администрирование"
+        android:backgroundTint="#D32F2F"
+        android:textColor="#FFFFFF"
+        android:visibility="gone"
+        android:layout_margin="16dp" />
+
 </LinearLayout>

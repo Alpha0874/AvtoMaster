@@ -3,28 +3,30 @@ package com.avtoforward.automaster;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.BitmapShader;
+import android.graphics.Shader;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RadioGroup;
-import android.widget.Spinner;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
 import com.google.gson.JsonObject;
 import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Transformation;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -37,24 +39,45 @@ public class EditMasterProfileActivity extends AppCompatActivity {
     private static final String TAG = "ProfileEdit";
 
     private EditText editFullName, editNickname, editServiceName, editPhone, editCity;
+    private EditText editExperienceYears;
     private RadioGroup radioGroupCorporate;
-    private Spinner spinnerStatus;
-    private RadioGroup radioGroupEquipment;
     private Button buttonSave;
     private ImageView imageAvatar;
     private Button buttonChangeAvatar;
-    private TextView textVerificationStatus;
-    private Button buttonUploadPassport;
     private String userId;
     private Uri selectedAvatarUri = null;
-    private File passportPhotoFile = null;
 
     private ActivityResultLauncher<Intent> imagePickerLauncher;
     private ActivityResultLauncher<Intent> cameraLauncher;
-    private ActivityResultLauncher<Intent> cameraPassportLauncher;
 
-    // Для управления видимостью блоков мастера
-    private View groupCorporate, groupStatus, groupEquipment, groupVerification;
+    // Трансформация для Picasso – круглый аватар
+    private final Transformation circleTransform = new Transformation() {
+        @Override
+        public Bitmap transform(Bitmap source) {
+            int size = Math.min(source.getWidth(), source.getHeight());
+            int x = (source.getWidth() - size) / 2;
+            int y = (source.getHeight() - size) / 2;
+            Bitmap squaredBitmap = Bitmap.createBitmap(source, x, y, size, size);
+            if (squaredBitmap != source) {
+                source.recycle();
+            }
+            Bitmap bitmap = Bitmap.createBitmap(size, size, source.getConfig());
+            Canvas canvas = new Canvas(bitmap);
+            Paint paint = new Paint();
+            BitmapShader shader = new BitmapShader(squaredBitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+            paint.setShader(shader);
+            paint.setAntiAlias(true);
+            float r = size / 2f;
+            canvas.drawCircle(r, r, r, paint);
+            squaredBitmap.recycle();
+            return bitmap;
+        }
+
+        @Override
+        public String key() {
+            return "circle";
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,25 +96,11 @@ public class EditMasterProfileActivity extends AppCompatActivity {
         editServiceName = findViewById(R.id.editServiceName);
         editPhone = findViewById(R.id.editPhone);
         editCity = findViewById(R.id.editCity);
+        editExperienceYears = findViewById(R.id.editExperienceYears);
         radioGroupCorporate = findViewById(R.id.radioGroupCorporate);
-        spinnerStatus = findViewById(R.id.spinnerStatus);
-        radioGroupEquipment = findViewById(R.id.radioGroupEquipment);
         buttonSave = findViewById(R.id.buttonSave);
         imageAvatar = findViewById(R.id.imageAvatar);
         buttonChangeAvatar = findViewById(R.id.buttonChangeAvatar);
-        textVerificationStatus = findViewById(R.id.textVerificationStatus);
-        buttonUploadPassport = findViewById(R.id.buttonUploadPassport);
-
-        // Находим группы для скрытия (оборачиваем в View, чтобы скрыть целиком)
-        groupCorporate = findViewById(R.id.groupCorporate);
-        groupStatus = findViewById(R.id.groupStatus);
-        groupEquipment = findViewById(R.id.groupEquipment);
-        groupVerification = findViewById(R.id.groupVerification);
-
-        ArrayAdapter<CharSequence> statusAdapter = ArrayAdapter.createFromResource(this,
-                R.array.master_statuses, android.R.layout.simple_spinner_item);
-        statusAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerStatus.setAdapter(statusAdapter);
 
         imagePickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
@@ -113,44 +122,28 @@ public class EditMasterProfileActivity extends AppCompatActivity {
                     }
                 });
 
-        cameraPassportLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == RESULT_OK && passportPhotoFile != null && passportPhotoFile.exists()) {
-                        uploadPassportPhoto(Uri.fromFile(passportPhotoFile));
-                    } else {
-                        Toast.makeText(this, "Фото не получено", Toast.LENGTH_SHORT).show();
-                    }
-                });
-
         buttonChangeAvatar.setOnClickListener(v -> showImageSourceDialog());
         buttonSave.setOnClickListener(v -> saveProfile());
-        buttonUploadPassport.setOnClickListener(v -> openCameraForPassport());
 
-        // Кнопка выхода - ИСПРАВЛЕННАЯ
         Button buttonLogout = findViewById(R.id.buttonLogout);
         if (buttonLogout != null) {
             buttonLogout.setOnClickListener(v -> {
-                // Вызываем единый метод выхода, который очистит всё и перенаправит
                 PocketBaseClient.logout();
-                // Закрываем эту Activity, потому что logout() уже перезапускает приложение
+                Toast.makeText(this, "Вы вышли из аккаунта", Toast.LENGTH_SHORT).show();
                 finish();
             });
         }
 
-        // Кнопка "Информация о приложении"
         Button buttonAbout = findViewById(R.id.buttonAbout);
         if (buttonAbout != null) {
             buttonAbout.setOnClickListener(v -> {
-                Intent intent = new Intent(this, com.avtoforward.automaster.AboutActivity.class);
+                Intent intent = new Intent(this, AboutActivity.class);
                 startActivity(intent);
             });
         }
 
         loadProfile();
     }
-
-    // ========== ОСТАЛЬНЫЕ МЕТОДЫ (без изменений) ==========
 
     private void showImageSourceDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -184,137 +177,55 @@ public class EditMasterProfileActivity extends AppCompatActivity {
         }
     }
 
-    private void openCameraForPassport() {
-        new AlertDialog.Builder(this)
-                .setTitle("Фото для верификации")
-                .setMessage("Сделайте селфи с разворотом паспорта.\n\n"
-                        + "В кадре должны быть:\n"
-                        + "• Ваше лицо\n"
-                        + "• Разворот паспорта с фото и данными\n\n"
-                        + "Фото будет проверено администратором.")
-                .setPositiveButton("Понятно, сделать фото", (dialog, which) -> {
-                    if (checkSelfPermission(android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                        requestPermissions(new String[]{android.Manifest.permission.CAMERA}, 102);
-                        return;
-                    }
-                    try {
-                        passportPhotoFile = new File(getCacheDir(), "passport_photo_" + System.currentTimeMillis() + ".jpg");
-                        Uri photoUri = FileProvider.getUriForFile(this,
-                                getPackageName() + ".fileprovider", passportPhotoFile);
-                        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                        intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
-                        cameraPassportLauncher.launch(intent);
-                    } catch (Exception e) {
-                        Toast.makeText(this, "Ошибка запуска камеры", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .setNegativeButton("Отмена", null)
-                .show();
-    }
-
     private void loadProfile() {
         new Thread(() -> {
-            JsonObject user = PocketBaseClient.getUserInfo(userId);
-            if (user != null) {
-                runOnUiThread(() -> {
-                    // Определяем роль
-                    String role = user.has("role") && !user.get("role").isJsonNull()
-                            ? user.get("role").getAsString()
-                            : "user";
-                    boolean isMaster = "master".equals(role) || "admin".equals(role);
+            try {
+                JsonObject user = PocketBaseClient.getUserInfo(userId);
+                if (user != null) {
+                    runOnUiThread(() -> {
+                        String role = user.has("role") && !user.get("role").isJsonNull()
+                                ? user.get("role").getAsString()
+                                : "user";
+                        boolean isMaster = "master".equals(role) || "admin".equals(role);
 
-                    // Скрываем блоки мастера, если пользователь — клиент
-                    if (groupCorporate != null) {
-                        groupCorporate.setVisibility(isMaster ? View.VISIBLE : View.GONE);
-                    }
-                    if (groupStatus != null) {
-                        groupStatus.setVisibility(isMaster ? View.VISIBLE : View.GONE);
-                    }
-                    if (groupEquipment != null) {
-                        groupEquipment.setVisibility(isMaster ? View.VISIBLE : View.GONE);
-                    }
-                    if (groupVerification != null) {
-                        groupVerification.setVisibility(isMaster ? View.VISIBLE : View.GONE);
-                    }
+                        editFullName.setText(getStringValue(user, "full_name"));
+                        editNickname.setText(getStringValue(user, "nickname"));
+                        editServiceName.setText(getStringValue(user, "service_name"));
+                        editPhone.setText(getStringValue(user, "phone"));
+                        editCity.setText(getStringValue(user, "city"));
+                        editExperienceYears.setText(getStringValue(user, "master_status"));
 
-                    // ФИО
-                    String fullName = getStringValue(user, "full_name");
-                    editFullName.setText(fullName);
-                    // Никнейм
-                    String nickname = getStringValue(user, "nickname");
-                    editNickname.setText(nickname);
-                    // Название сервиса
-                    String serviceName = getStringValue(user, "service_name");
-                    editServiceName.setText(serviceName);
-                    // Телефон
-                    String phone = getStringValue(user, "phone");
-                    editPhone.setText(phone);
-                    // Город
-                    String city = getStringValue(user, "city");
-                    editCity.setText(city);
-
-                    // Аватар
-                    if (user.has("avatar") && !user.get("avatar").isJsonNull()) {
-                        String avatarUrl = PocketBaseClient.getBaseUrl() + "/api/files/users/" + userId + "/" + user.get("avatar").getAsString();
-                        Picasso.get().load(avatarUrl).into(imageAvatar);
-                    } else {
-                        imageAvatar.setImageResource(R.drawable.ic_role_master);
-                    }
-
-                    // Статус верификации (показываем только для мастеров)
-                    if (isMaster) {
-                        String verificationStatus = getStringValue(user, "verification_status");
-                        if ("verified".equals(verificationStatus)) {
-                            textVerificationStatus.setText("Статус: подтверждён ✓");
-                            textVerificationStatus.setTextColor(ContextCompat.getColor(this, R.color.switch_thumb_on));
-                        } else if ("pending".equals(verificationStatus)) {
-                            textVerificationStatus.setText("Статус: на проверке...");
-                            textVerificationStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
+                        if (user.has("avatar") && !user.get("avatar").isJsonNull()) {
+                            String avatarUrl = PocketBaseClient.getBaseUrl() + "/api/files/users/" + userId + "/" + user.get("avatar").getAsString();
+                            Picasso.get()
+                                    .load(avatarUrl)
+                                    .transform(circleTransform)
+                                    .placeholder(android.R.drawable.ic_menu_edit)
+                                    .error(android.R.drawable.ic_menu_edit)
+                                    .into(imageAvatar);
                         } else {
-                            textVerificationStatus.setText("Статус: не проверен");
-                            textVerificationStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
+                            imageAvatar.setImageResource(android.R.drawable.ic_menu_edit);
                         }
-                    }
 
-                    // Corporate ready (только для мастеров)
-                    if (isMaster) {
-                        String corp = getStringValue(user, "corporate_ready");
-                        if ("yes".equals(corp)) {
-                            radioGroupCorporate.check(R.id.radioCorporateYes);
-                        } else {
-                            radioGroupCorporate.check(R.id.radioCorporateNo);
+                        if (isMaster) {
+                            String corp = getStringValue(user, "corporate_ready");
+                            if ("yes".equals(corp)) {
+                                radioGroupCorporate.check(R.id.radioCorporateYes);
+                            } else {
+                                radioGroupCorporate.check(R.id.radioCorporateNo);
+                            }
                         }
-                    }
-
-                    // Master status (только для мастеров)
-                    if (isMaster) {
-                        String masterStatus = getStringValue(user, "master_status");
-                        if (!masterStatus.isEmpty()) {
-                            int pos = ((ArrayAdapter) spinnerStatus.getAdapter()).getPosition(masterStatus);
-                            if (pos >= 0) spinnerStatus.setSelection(pos);
-                        } else {
-                            spinnerStatus.setSelection(0);
-                        }
-                        Log.d(TAG, "Загружен статус: " + masterStatus);
-                    }
-
-                    // Наличие сканера (только для мастеров)
-                    if (isMaster) {
-                        String scanner = getStringValue(user, "has_scanner");
-                        if ("yes".equals(scanner)) {
-                            radioGroupEquipment.check(R.id.radioEquipmentYes);
-                        } else {
-                            radioGroupEquipment.check(R.id.radioEquipmentNo);
-                        }
-                    }
-                });
-            } else {
-                runOnUiThread(() -> Toast.makeText(this, "Не удалось загрузить профиль", Toast.LENGTH_SHORT).show());
+                    });
+                } else {
+                    runOnUiThread(() -> Toast.makeText(this, "Не удалось загрузить профиль", Toast.LENGTH_SHORT).show());
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Ошибка загрузки профиля", e);
+                runOnUiThread(() -> Toast.makeText(this, "Ошибка загрузки", Toast.LENGTH_SHORT).show());
             }
         }).start();
     }
 
-    // Вспомогательный метод: возвращает строку, если поле существует и не null, иначе пустую строку
     private String getStringValue(JsonObject user, String key) {
         if (user.has(key) && !user.get(key).isJsonNull()) {
             return user.get(key).getAsString();
@@ -328,34 +239,41 @@ public class EditMasterProfileActivity extends AppCompatActivity {
         String serviceName = editServiceName.getText().toString().trim();
         String phone = editPhone.getText().toString().trim();
         String city = editCity.getText().toString().trim();
+        String experienceYears = editExperienceYears.getText().toString().trim();
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("full_name", fullName);
-        data.put("nickname", nickname);
-        data.put("service_name", serviceName);
-        data.put("phone", phone);
-        data.put("city", city);
-
-        // Для мастеров сохраняем дополнительные поля
-        String role = PocketBaseClient.getUserRole();
-        if ("master".equals(role) || "admin".equals(role)) {
-            int corpCheckedId = radioGroupCorporate.getCheckedRadioButtonId();
-            String corporateReady = (corpCheckedId == R.id.radioCorporateYes) ? "yes" : "no";
-            data.put("corporate_ready", corporateReady);
-
-            String masterStatus = spinnerStatus.getSelectedItem().toString();
-            data.put("master_status", masterStatus);
-
-            int equipCheckedId = radioGroupEquipment.getCheckedRadioButtonId();
-            String hasScanner = (equipCheckedId == R.id.radioEquipmentYes) ? "yes" : "no";
-            data.put("has_scanner", hasScanner);
+        if (fullName.isEmpty() || nickname.isEmpty() || phone.isEmpty() || city.isEmpty() || experienceYears.isEmpty()) {
+            Toast.makeText(this, "Заполните все поля, отмеченные *", Toast.LENGTH_LONG).show();
+            return;
         }
 
-        if (selectedAvatarUri != null) {
-            uploadAvatarThenSave(data);
-        } else {
-            updateUserData(data);
-        }
+        // Получаем роль в фоновом потоке
+        new Thread(() -> {
+            String role = PocketBaseClient.getUserRole();
+            runOnUiThread(() -> {
+                buttonSave.setEnabled(false);
+                buttonSave.setText("Сохранение...");
+
+                Map<String, Object> data = new HashMap<>();
+                data.put("full_name", fullName);
+                data.put("nickname", nickname);
+                data.put("service_name", serviceName);
+                data.put("phone", phone);
+                data.put("city", city);
+                data.put("master_status", experienceYears);
+
+                if ("master".equals(role) || "admin".equals(role)) {
+                    int corpCheckedId = radioGroupCorporate.getCheckedRadioButtonId();
+                    String corporateReady = (corpCheckedId == R.id.radioCorporateYes) ? "yes" : "no";
+                    data.put("corporate_ready", corporateReady);
+                }
+
+                if (selectedAvatarUri != null) {
+                    uploadAvatarThenSave(data);
+                } else {
+                    updateUserData(data);
+                }
+            });
+        }).start();
     }
 
     private void uploadAvatarThenSave(Map<String, Object> userData) {
@@ -363,56 +281,56 @@ public class EditMasterProfileActivity extends AppCompatActivity {
             try {
                 File tempFile = copyUriToTempFile(selectedAvatarUri);
                 if (tempFile == null) {
-                    runOnUiThread(() -> Toast.makeText(this, "Ошибка копирования аватара", Toast.LENGTH_SHORT).show());
+                    runOnUiThread(() -> {
+                        Toast.makeText(this, "Ошибка копирования аватара", Toast.LENGTH_SHORT).show();
+                        buttonSave.setEnabled(true);
+                        buttonSave.setText("Сохранить");
+                    });
                     return;
                 }
                 boolean success = PocketBaseClient.uploadAvatar(userId, tempFile.getAbsolutePath());
                 if (success) {
                     updateUserData(userData);
                 } else {
-                    runOnUiThread(() -> Toast.makeText(this, "Ошибка загрузки аватара", Toast.LENGTH_SHORT).show());
+                    runOnUiThread(() -> {
+                        Toast.makeText(this, "Ошибка загрузки аватара", Toast.LENGTH_SHORT).show();
+                        buttonSave.setEnabled(true);
+                        buttonSave.setText("Сохранить");
+                    });
                 }
             } catch (Exception e) {
-                e.printStackTrace();
-                runOnUiThread(() -> Toast.makeText(this, "Ошибка: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                Log.e(TAG, "Ошибка загрузки аватара", e);
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Ошибка: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    buttonSave.setEnabled(true);
+                    buttonSave.setText("Сохранить");
+                });
             }
         }).start();
     }
 
     private void updateUserData(Map<String, Object> data) {
         new Thread(() -> {
-            boolean success = PocketBaseClient.updateUser(userId, data);
-            runOnUiThread(() -> {
-                if (success) {
-                    Toast.makeText(this, "Профиль сохранён", Toast.LENGTH_SHORT).show();
-                    loadProfile();
-                } else {
-                    Toast.makeText(this, "Ошибка сохранения. Проверьте интернет и права.", Toast.LENGTH_LONG).show();
-                }
-            });
-        }).start();
-    }
-
-    private void uploadPassportPhoto(Uri uri) {
-        new Thread(() -> {
             try {
-                File tempFile = copyUriToTempFile(uri);
-                if (tempFile == null) {
-                    runOnUiThread(() -> Toast.makeText(this, "Ошибка копирования фото", Toast.LENGTH_SHORT).show());
-                    return;
-                }
-                boolean success = PocketBaseClient.uploadPassportPhoto(userId, tempFile.getAbsolutePath());
+                boolean success = PocketBaseClient.updateUser(userId, data);
                 runOnUiThread(() -> {
+                    buttonSave.setEnabled(true);
+                    buttonSave.setText("Сохранить");
                     if (success) {
-                        Toast.makeText(this, "Фото паспорта загружено. Статус: на проверке.", Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "Профиль сохранён", Toast.LENGTH_SHORT).show();
                         loadProfile();
+                        selectedAvatarUri = null;
                     } else {
-                        Toast.makeText(this, "Ошибка загрузки", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Ошибка сохранения", Toast.LENGTH_LONG).show();
                     }
                 });
             } catch (Exception e) {
-                e.printStackTrace();
-                runOnUiThread(() -> Toast.makeText(this, "Ошибка: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                Log.e(TAG, "Ошибка сохранения", e);
+                runOnUiThread(() -> {
+                    buttonSave.setEnabled(true);
+                    buttonSave.setText("Сохранить");
+                    Toast.makeText(this, "Ошибка: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
             }
         }).start();
     }
@@ -431,7 +349,7 @@ public class EditMasterProfileActivity extends AppCompatActivity {
             is.close();
             return tempFile;
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Ошибка копирования файла", e);
             return null;
         }
     }

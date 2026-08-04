@@ -9,6 +9,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.avtoforward.automaster.utils.SessionManager;
+import com.google.gson.JsonObject;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -23,7 +24,6 @@ public class LoginActivity extends AppCompatActivity {
 
         sessionManager = new SessionManager(this);
 
-        // Если уже залогинены — сразу переходим в главное меню
         if (sessionManager.isLoggedIn()) {
             redirectToMain();
             finish();
@@ -54,27 +54,36 @@ public class LoginActivity extends AppCompatActivity {
             boolean success = PocketBaseClient.login(email, password);
             if (success) {
                 String role = PocketBaseClient.getUserRole();
-
-                // Сохраняем сессию
-                sessionManager.createLoginSession(email, role);
-
                 runOnUiThread(() -> {
+                    sessionManager.createLoginSession(email, role);
                     Toast.makeText(LoginActivity.this, "Вход выполнен", Toast.LENGTH_SHORT).show();
-
-                    // Запускаем сервис уведомлений
                     Intent serviceIntent = new Intent(LoginActivity.this, ForegroundNotificationService.class);
                     startService(serviceIntent);
-
                     redirectToMain();
                     finish();
                 });
             } else {
+                // Проверяем причину через получение данных пользователя
+                String userId = PocketBaseClient.getCurrentUserId();
+                if (userId != null) {
+                    JsonObject user = PocketBaseClient.getUserInfo(userId);
+                    if (user != null) {
+                        boolean banned = user.has("banned") && user.get("banned").getAsBoolean();
+                        boolean verified = user.has("verified") && user.get("verified").getAsBoolean();
+                        if (banned) {
+                            runOnUiThread(() -> Toast.makeText(LoginActivity.this, "Ваш аккаунт заблокирован. Обратитесь к администратору.", Toast.LENGTH_LONG).show());
+                            return;
+                        } else if (!verified) {
+                            runOnUiThread(() -> Toast.makeText(LoginActivity.this, "Аккаунт не подтверждён администратором. Дождитесь проверки.", Toast.LENGTH_LONG).show());
+                            return;
+                        }
+                    }
+                }
                 runOnUiThread(() -> Toast.makeText(LoginActivity.this, "Ошибка входа. Проверьте email и пароль", Toast.LENGTH_LONG).show());
             }
         }).start();
     }
 
-    // Метод для перенаправления в зависимости от роли
     private void redirectToMain() {
         String role = sessionManager.getUserRole();
         if ("admin".equals(role)) {
@@ -86,10 +95,8 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
-    // ✅ Обработка нажатия кнопки "Назад" – возврат на экран выбора роли
     @Override
     public void onBackPressed() {
-        // Переходим на экран выбора роли (очищая стек, чтобы нельзя было вернуться назад в LoginActivity)
         Intent intent = new Intent(LoginActivity.this, RoleSelectionActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);

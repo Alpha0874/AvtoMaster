@@ -10,7 +10,6 @@ import android.widget.Toast;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
@@ -33,7 +32,6 @@ public class ForumActivity extends AppCompatActivity {
             getSupportActionBar().setTitle("Форум");
         }
 
-        // Обработка кнопки "Назад" через OnBackPressedDispatcher
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
@@ -45,18 +43,9 @@ public class ForumActivity extends AppCompatActivity {
             }
         });
 
-        // Слушатель для смены заголовка
-        getSupportFragmentManager().addOnBackStackChangedListener(() -> {
-            Fragment current = getSupportFragmentManager().findFragmentById(R.id.container);
-            if (current instanceof ForumKnowledgeFragment) {
-                if (getSupportActionBar() != null) getSupportActionBar().setTitle("Форум");
-            } else {
-                if (getSupportActionBar() != null) getSupportActionBar().setTitle("Форум");
-            }
-        });
-
+        // Проверяем только авторизацию
         if (!PocketBaseClient.isLoggedIn()) {
-            Log.w(TAG, "Токен отсутствует → переход на LoginActivity");
+            Log.w(TAG, "Пользователь не авторизован");
             Toast.makeText(this, "Требуется авторизация", Toast.LENGTH_SHORT).show();
             Intent loginIntent = new Intent(this, LoginActivity.class);
             loginIntent.putExtra("role", "Мастер");
@@ -65,38 +54,22 @@ public class ForumActivity extends AppCompatActivity {
             return;
         }
 
-        String userId = PocketBaseClient.getCurrentUserId();
-        if (userId != null) {
-            new Thread(() -> {
-                String verificationStatus = PocketBaseClient.getVerificationStatus(userId);
-                runOnUiThread(() -> {
-                    if (!"verified".equals(verificationStatus)) {
-                        Toast.makeText(this, "Доступ к форуму после подтверждения личности. Загрузите фото паспорта в профиле.", Toast.LENGTH_LONG).show();
-                        finish();
-                    } else {
-                        if (savedInstanceState == null) {
-                            replaceFragmentSafely(new ForumKnowledgeFragment(), false);
-                        }
-                    }
-                });
-            }).start();
-        } else {
-            Toast.makeText(this, "Ошибка авторизации", Toast.LENGTH_SHORT).show();
-            finish();
+        // Открываем ForumKnowledgeFragment (как было раньше)
+        if (savedInstanceState == null) {
+            Fragment fragment = new ForumKnowledgeFragment();
+            replaceFragmentSafely(fragment, false);
         }
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Меню теперь пустое, можно не надувать, но оставим для совместимости
-        // getMenuInflater().inflate(R.menu.menu_forum, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
-            // Обработка кнопки "Назад" через OnBackPressedDispatcher уже есть
+            // Обрабатывается через OnBackPressedDispatcher
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -110,19 +83,19 @@ public class ForumActivity extends AppCompatActivity {
         }
     }
 
-    public void openTopicsForSubcategory(String subcategoryId, String subcategoryName) {
-        replaceFragmentSafely(new com.avtoforward.automaster.fragments.ForumTopicsFragment(subcategoryId, subcategoryName), true);
-    }
-
+    // Метод для открытия чата (используется из других фрагментов)
     public void openChat(String topicId, String topicTitle) {
         try {
-            replaceFragmentSafely(new com.avtoforward.automaster.fragments.ForumChatFragment(topicId, topicTitle), true);
+            com.avtoforward.automaster.fragments.ForumChatFragment fragment =
+                    new com.avtoforward.automaster.fragments.ForumChatFragment(topicId, topicTitle);
+            replaceFragmentSafely(fragment, true);
         } catch (Exception e) {
             Log.e(TAG, "Ошибка при открытии чата: " + e.getMessage(), e);
             Toast.makeText(this, "Не удалось открыть чат. Попробуйте позже.", Toast.LENGTH_LONG).show();
         }
     }
 
+    // Метод для открытия чата по ID (с подгрузкой названия)
     public void openChat(String topicId) {
         new Thread(() -> {
             String title = topicId;

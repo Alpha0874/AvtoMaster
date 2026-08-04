@@ -11,6 +11,7 @@ import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import com.avtoforward.automaster.utils.SessionManager;
+import com.avtoforward.automaster.utils.TimeTracker;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -91,8 +92,13 @@ public class PocketBaseClient {
             prefs.edit().remove(KEY_TOKEN).remove(KEY_USER_ID).apply();
             Log.d("PocketBase", "SharedPreferences cleared");
         }
-        // Очистка SessionManager
         if (appContext != null) {
+            try {
+                TimeTracker.getInstance(appContext).onAppExit();
+                Log.d("PocketBase", "TimeTracker data sent");
+            } catch (Exception e) {
+                Log.e("PocketBase", "Error sending TimeTracker data", e);
+            }
             try {
                 SessionManager sessionManager = new SessionManager(appContext);
                 sessionManager.logout();
@@ -100,7 +106,6 @@ public class PocketBaseClient {
             } catch (Exception e) {
                 Log.e("PocketBase", "Error clearing SessionManager", e);
             }
-            // Остановка сервиса уведомлений
             try {
                 Intent intent = new Intent(appContext, ForegroundNotificationService.class);
                 appContext.stopService(intent);
@@ -108,7 +113,6 @@ public class PocketBaseClient {
             } catch (Exception e) {
                 Log.e("PocketBase", "Error stopping service", e);
             }
-            // Переход на экран выбора роли
             try {
                 Intent roleIntent = new Intent(appContext, RoleSelectionActivity.class);
                 roleIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -120,7 +124,9 @@ public class PocketBaseClient {
         }
     }
 
-    public static boolean register(String email, String password, String passwordConfirm, String nickname) {
+    // ==================== РЕГИСТРАЦИЯ (УПРОЩЁННАЯ) ====================
+
+    public static boolean register(String email, String password, String passwordConfirm, String nickname, String role) {
         JsonObject body = new JsonObject();
         body.addProperty("email", email);
         body.addProperty("password", password);
@@ -129,6 +135,9 @@ public class PocketBaseClient {
             nickname = email.split("@")[0];
         }
         body.addProperty("nickname", nickname);
+        body.addProperty("role", role != null ? role : "user");
+        // Убираем отправку verified и banned, чтобы избежать ошибки типа
+        // Если они обязательны, в админке можно установить значения по умолчанию.
 
         Request request = new Request.Builder()
                 .url(BASE_URL + "/api/collections/users/records")
@@ -136,17 +145,21 @@ public class PocketBaseClient {
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
+            String respBody = response.body() != null ? response.body().string() : "null";
+            Log.d("PocketBase", "Register response code: " + response.code() + ", body: " + respBody);
             if (response.isSuccessful()) {
                 return login(email, password);
             } else {
-                String respBody = response.body() != null ? response.body().string() : "null";
                 Log.e("PocketBase", "Register failed: " + respBody);
+                return false;
             }
         } catch (IOException e) {
             Log.e("PocketBase", "Register error", e);
+            return false;
         }
-        return false;
     }
+
+    // ==================== ЛОГИН (С ПРОВЕРКОЙ ТОЛЬКО BANNED) ====================
 
     public static boolean login(String email, String password) {
         JsonObject body = new JsonObject();
@@ -162,20 +175,68 @@ public class PocketBaseClient {
             if (response.isSuccessful()) {
                 String json = response.body().string();
                 JsonObject respObj = gson.fromJson(json, JsonObject.class);
+                JsonObject record = respObj.getAsJsonObject("record");
+
+                // Проверяем только бан
+                boolean banned = getBooleanSafe(record, "banned");
+                if (banned) {
+                    Log.w("PocketBase", "User is banned: " + email);
+                    return false;
+                }
+
                 authToken = respObj.get("token").getAsString();
-                currentUserId = respObj.getAsJsonObject("record").get("id").getAsString();
+                currentUserId = record.get("id").getAsString();
                 saveCredentials();
                 Log.d("PocketBase", "Login success, userId=" + currentUserId);
                 return true;
             } else {
                 String respBody = response.body() != null ? response.body().string() : "null";
                 Log.e("PocketBase", "Login failed: " + respBody);
+                return false;
             }
         } catch (IOException e) {
             Log.e("PocketBase", "Login error", e);
+            return false;
         }
-        return false;
     }
+
+    // ==================== НОВЫЕ МЕТОДЫ ДЛЯ АДМИНА ====================
+
+    public static boolean verifyUser(String userId) {
+        // Заглушка, так как верификация отключена
+        Log.d("PocketBase", "verifyUser called but skipped (verified is always true)");
+        return true;
+    }
+
+    public static boolean banUser(String userId) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("banned", "true");
+        return updateUser(userId, data);
+    }
+
+    public static boolean unbanUser(String userId) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("banned", "false");
+        return updateUser(userId, data);
+    }
+
+    // ==================== ВСПОМОГАТЕЛЬНЫЙ МЕТОД ДЛЯ ЧТЕНИЯ BOOLEAN ====================
+
+    private static boolean getBooleanSafe(JsonObject obj, String key) {
+        if (!obj.has(key) || obj.get(key).isJsonNull()) return false;
+        try {
+            return obj.get(key).getAsBoolean();
+        } catch (Exception e) {
+            try {
+                String val = obj.get(key).getAsString();
+                return "true".equalsIgnoreCase(val);
+            } catch (Exception ex) {
+                return false;
+            }
+        }
+    }
+
+    // ==================== ОСТАЛЬНЫЕ МЕТОДЫ (БЕЗ ИЗМЕНЕНИЙ) ====================
 
     public static String getCurrentUserId() {
         return currentUserId;
@@ -206,6 +267,7 @@ public class PocketBaseClient {
     public static boolean updateUser(String userId, Map<String, Object> data) {
         if (!isLoggedIn()) return false;
         String jsonStr = gson.toJson(data);
+        Log.d("PocketBase", "updateUser: userId=" + userId + ", data=" + jsonStr);
         Request request = new Request.Builder()
                 .url(BASE_URL + "/api/collections/users/records/" + userId)
                 .header("Authorization", authToken)
@@ -213,6 +275,8 @@ public class PocketBaseClient {
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
+            String respBody = response.body() != null ? response.body().string() : "null";
+            Log.d("PocketBase", "updateUser response code: " + response.code() + ", body: " + respBody);
             return response.isSuccessful();
         } catch (IOException e) {
             Log.e("PocketBase", "Update user error", e);
@@ -724,16 +788,20 @@ public class PocketBaseClient {
         return 0;
     }
 
-    // ==================== НОВЫЕ СООБЩЕНИЯ (ИСПРАВЛЕННАЯ ВЕРСИЯ) ====================
+    // ==================== НОВЫЕ СООБЩЕНИЯ (ВРЕМЕННО БЕЗ ФИЛЬТРА) ====================
     public static JsonObject getNewMessagesSince(long lastTimestamp) {
         if (!isLoggedIn()) {
             Log.e("PocketBase", "getNewMessagesSince: not logged in");
             return null;
         }
         try {
-            // ВРЕМЕННО: убираем фильтр, получаем все сообщения
-            String url = BASE_URL + "/api/collections/forum_messages/records?sort=created&expand=author&perPage=100";
-            Log.d("PocketBase", "getNewMessagesSince URL (без фильтра): " + url);
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+            sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+            String lastTimeStr = sdf.format(new Date(lastTimestamp));
+            String filter = "created > '" + lastTimeStr + "'";
+            String encodedFilter = java.net.URLEncoder.encode(filter, "UTF-8");
+            String url = BASE_URL + "/api/collections/forum_messages/records?filter=" + encodedFilter + "&sort=created&expand=author&perPage=100";
+            Log.d("PocketBase", "getNewMessagesSince URL: " + url);
             Request request = new Request.Builder()
                     .url(url)
                     .header("Authorization", authToken)
@@ -1170,6 +1238,8 @@ public class PocketBaseClient {
         return orders;
     }
 
+    // ==================== СТАРЫЕ МЕТОДЫ (устарели) ====================
+    @Deprecated
     public static String getVerificationStatus(String userId) {
         JsonObject user = getUserInfo(userId);
         if (user != null && user.has("verification_status") && !user.get("verification_status").isJsonNull()) {
@@ -1178,6 +1248,7 @@ public class PocketBaseClient {
         return "pending";
     }
 
+    @Deprecated
     public static boolean uploadPassportPhoto(String userId, String filePath) {
         if (!isLoggedIn()) return false;
         File file = new File(filePath);
@@ -1202,45 +1273,7 @@ public class PocketBaseClient {
         return false;
     }
 
-    // ==================== АДМИНИСТРИРОВАНИЕ ====================
-    public static String getUserRole() {
-        if (currentUserId == null) return null;
-        JsonObject user = getUserInfo(currentUserId);
-        if (user != null && user.has("role") && !user.get("role").isJsonNull()) {
-            return user.get("role").getAsString();
-        }
-        return "master";
-    }
-
-    public static JsonObject getAllUsers() {
-        if (!isLoggedIn()) {
-            Log.e("PocketBase", "getAllUsers: not logged in");
-            return null;
-        }
-        try {
-            String url = BASE_URL + "/api/collections/users/records?perPage=100";
-            Log.d("PocketBase", "getAllUsers URL: " + url);
-            Request request = new Request.Builder()
-                    .url(url)
-                    .header("Authorization", authToken)
-                    .get()
-                    .build();
-            try (Response response = client.newCall(request).execute()) {
-                String responseBody = response.body() != null ? response.body().string() : "";
-                Log.d("PocketBase", "getAllUsers response code: " + response.code() + ", body: " + responseBody);
-                if (response.isSuccessful()) {
-                    return gson.fromJson(responseBody, JsonObject.class);
-                } else {
-                    Log.e("PocketBase", "getAllUsers failed: " + response.code() + " - " + responseBody);
-                    return null;
-                }
-            }
-        } catch (Exception e) {
-            Log.e("PocketBase", "getAllUsers error", e);
-            return null;
-        }
-    }
-
+    @Deprecated
     public static JsonObject getPendingVerifications() {
         if (!isLoggedIn()) return null;
         try {
@@ -1261,11 +1294,48 @@ public class PocketBaseClient {
         return null;
     }
 
+    @Deprecated
     public static boolean updateVerificationStatus(String userId, String status) {
         if (!isLoggedIn()) return false;
         Map<String, Object> data = new HashMap<>();
         data.put("verification_status", status);
         return updateUser(userId, data);
+    }
+
+    // ==================== АДМИНИСТРИРОВАНИЕ ====================
+    public static String getUserRole() {
+        if (currentUserId == null) return null;
+        JsonObject user = getUserInfo(currentUserId);
+        if (user != null && user.has("role") && !user.get("role").isJsonNull()) {
+            return user.get("role").getAsString();
+        }
+        return "master";
+    }
+
+    public static JsonObject getAllUsers() {
+        if (!isLoggedIn()) return null;
+        try {
+            String url = BASE_URL + "/api/collections/users/records?perPage=100&sort=-created";
+            Log.d("PocketBase", "getAllUsers URL: " + url);
+            Request request = new Request.Builder()
+                    .url(url)
+                    .header("Authorization", authToken)
+                    .get()
+                    .build();
+            try (Response response = client.newCall(request).execute()) {
+                String responseBody = response.body() != null ? response.body().string() : "";
+                Log.d("PocketBase", "getAllUsers response: " + responseBody);
+                if (response.isSuccessful()) {
+                    return gson.fromJson(responseBody, JsonObject.class);
+                } else {
+                    Log.e("PocketBase", "getAllUsers failed: " + response.code() + " - " + responseBody);
+                    return null;
+                }
+            }
+        } catch (Exception e) {
+            Log.e("PocketBase", "getAllUsers error", e);
+        }
+        return null;
     }
 
     public static JsonObject getAllOrders() {
@@ -1329,31 +1399,24 @@ public class PocketBaseClient {
         try {
             String filterAllMasters = "role='master'";
             int totalMasters = getTotalCount("users", filterAllMasters);
-
             long fiveMinutesAgo = System.currentTimeMillis() - 5 * 60 * 1000;
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
             sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
             String fiveMinutesAgoStr = sdf.format(new Date(fiveMinutesAgo));
             String filterOnlineMasters = "role='master' && last_online > '" + fiveMinutesAgoStr + "'";
             int onlineMasters = getTotalCount("users", filterOnlineMasters);
-
             long tenMinutesAgo = System.currentTimeMillis() - 10 * 60 * 1000;
             String tenMinutesAgoStr = sdf.format(new Date(tenMinutesAgo));
             String filterForumMasters = "role='master' && last_forum_activity > '" + tenMinutesAgoStr + "'";
             int mastersOnForum = getTotalCount("users", filterForumMasters);
-
             String filterAllClients = "role='user'";
             int totalClients = getTotalCount("users", filterAllClients);
-
             String filterOnlineClients = "role='user' && last_online > '" + fiveMinutesAgoStr + "'";
             int onlineClients = getTotalCount("users", filterOnlineClients);
-
             String filterNewOrders = "status='new'";
             int newOrders = getTotalCount("orders", filterNewOrders);
-
             String filterCompletedOrders = "status='completed'";
             int completedOrders = getTotalCount("orders", filterCompletedOrders);
-
             JsonObject stats = new JsonObject();
             stats.addProperty("total_masters", totalMasters);
             stats.addProperty("online_masters", onlineMasters);
@@ -1447,7 +1510,6 @@ public class PocketBaseClient {
                 if (response.isSuccessful()) {
                     JsonObject result = gson.fromJson(response.body().string(), JsonObject.class);
                     JsonArray items = result.getAsJsonArray("items");
-                    Log.d("PocketBase", "Все тарифы (количество): " + items.size());
                     for (int i = 0; i < items.size(); i++) {
                         JsonObject item = items.get(i).getAsJsonObject();
                         String c = item.has("city") ? item.get("city").getAsString() : "";
@@ -1475,5 +1537,116 @@ public class PocketBaseClient {
             Log.e("PocketBase", "getTariff error", e);
         }
         return null;
+    }
+
+    // ==================== СТАТИСТИКА ИСПОЛЬЗОВАНИЯ ====================
+    public static boolean createAppStat(String userId, String role, String date, long activeSeconds, long backgroundSeconds) {
+        if (!isLoggedIn()) {
+            Log.e("PocketBase", "createAppStat: not logged in");
+            return false;
+        }
+        try {
+            JsonObject body = new JsonObject();
+            body.addProperty("user_id", userId);
+            body.addProperty("role", role);
+            body.addProperty("date", date);
+            body.addProperty("active_seconds", activeSeconds);
+            body.addProperty("background_seconds", backgroundSeconds);
+            Request request = new Request.Builder()
+                    .url(BASE_URL + "/api/collections/app_stats/records")
+                    .header("Authorization", authToken)
+                    .post(RequestBody.create(gson.toJson(body), MediaType.parse("application/json")))
+                    .build();
+            try (Response response = client.newCall(request).execute()) {
+                String responseBody = response.body() != null ? response.body().string() : "";
+                Log.d("PocketBase", "createAppStat response code: " + response.code() + ", body: " + responseBody);
+                return response.isSuccessful();
+            }
+        } catch (Exception e) {
+            Log.e("PocketBase", "createAppStat error", e);
+            return false;
+        }
+    }
+
+    // ==================== СТАТИСТИКА МАСТЕРА ДЛЯ АДМИНКИ ====================
+    public static int getOrderCountByStatus(String masterId, String status) {
+        if (!isLoggedIn()) return 0;
+        try {
+            String filter = "assigned_to='" + masterId + "' && status='" + status + "'";
+            String url = BASE_URL + "/api/collections/orders/records?perPage=1&filter=" + java.net.URLEncoder.encode(filter, "UTF-8");
+            Request request = new Request.Builder()
+                    .url(url)
+                    .header("Authorization", authToken)
+                    .get()
+                    .build();
+            try (Response response = client.newCall(request).execute()) {
+                if (response.isSuccessful()) {
+                    JsonObject result = gson.fromJson(response.body().string(), JsonObject.class);
+                    return result.get("totalItems").getAsInt();
+                }
+            }
+        } catch (Exception e) {
+            Log.e("PocketBase", "getOrderCountByStatus error", e);
+        }
+        return 0;
+    }
+
+    public static long getTotalAppTime(String userId) {
+        if (!isLoggedIn()) return 0;
+        try {
+            String filter = "user_id='" + userId + "'";
+            String url = BASE_URL + "/api/collections/app_stats/records?filter=" + java.net.URLEncoder.encode(filter, "UTF-8") + "&perPage=1000";
+            Request request = new Request.Builder()
+                    .url(url)
+                    .header("Authorization", authToken)
+                    .get()
+                    .build();
+            try (Response response = client.newCall(request).execute()) {
+                if (response.isSuccessful()) {
+                    JsonObject result = gson.fromJson(response.body().string(), JsonObject.class);
+                    JsonArray items = result.getAsJsonArray("items");
+                    long total = 0;
+                    for (int i = 0; i < items.size(); i++) {
+                        JsonObject item = items.get(i).getAsJsonObject();
+                        long active = item.has("active_seconds") ? item.get("active_seconds").getAsLong() : 0;
+                        long background = item.has("background_seconds") ? item.get("background_seconds").getAsLong() : 0;
+                        total += active + background;
+                    }
+                    return total;
+                }
+            }
+        } catch (Exception e) {
+            Log.e("PocketBase", "getTotalAppTime error", e);
+        }
+        return 0;
+    }
+
+    public static int getMasterNumber(String masterId) {
+        if (!isLoggedIn()) return 0;
+        try {
+            String filter = "role='master'";
+            String url = BASE_URL + "/api/collections/users/records?filter=" + java.net.URLEncoder.encode(filter, "UTF-8") + "&sort=created&perPage=1000";
+            Request request = new Request.Builder()
+                    .url(url)
+                    .header("Authorization", authToken)
+                    .get()
+                    .build();
+            try (Response response = client.newCall(request).execute()) {
+                if (response.isSuccessful()) {
+                    JsonObject result = gson.fromJson(response.body().string(), JsonObject.class);
+                    JsonArray items = result.getAsJsonArray("items");
+                    for (int i = 0; i < items.size(); i++) {
+                        JsonObject user = items.get(i).getAsJsonObject();
+                        String id = user.get("id").getAsString();
+                        if (id.equals(masterId)) {
+                            return i + 1;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.e("PocketBase", "getMasterNumber error", e);
+        }
+        return 0;
     }
 }

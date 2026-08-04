@@ -3,6 +3,8 @@ package com.avtoforward.automaster;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -18,6 +20,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 public class MainActivity extends AppCompatActivity {
 
     private BottomNavigationView bottomNavigationView;
+    private Button btnAdmin;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,11 +36,25 @@ public class MainActivity extends AppCompatActivity {
         bottomNavigationView = findViewById(R.id.bottom_navigation_main);
         bottomNavigationView.setOnItemSelectedListener(this::onNavigationItemSelected);
 
+        // Кнопка администрирования (добавьте в layout activity_main.xml)
+        btnAdmin = findViewById(R.id.btnAdmin);
+        if (btnAdmin != null) {
+            // Проверяем роль
+            String role = PocketBaseClient.getUserRole();
+            if ("admin".equals(role)) {
+                btnAdmin.setVisibility(View.VISIBLE);
+                btnAdmin.setOnClickListener(v -> {
+                    startActivity(new Intent(this, AdminActivity.class));
+                });
+            } else {
+                btnAdmin.setVisibility(View.GONE);
+            }
+        }
+
         if (savedInstanceState == null) {
             loadFragment(new ServicesFragment());
         }
 
-        // ✅ ЗАПУСКАЕМ СЕРВИС УВЕДОМЛЕНИЙ (если ещё не запущен)
         Intent serviceIntent = new Intent(this, ForegroundNotificationService.class);
         startService(serviceIntent);
     }
@@ -63,5 +80,18 @@ public class MainActivity extends AppCompatActivity {
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.container_main, fragment);
         transaction.commit();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (PocketBaseClient.isLoggedIn()) {
+            new Thread(PocketBaseClient::updateLastOnline).start();
+        }
+        // Обновляем видимость кнопки администрирования при возврате
+        if (btnAdmin != null) {
+            String role = PocketBaseClient.getUserRole();
+            btnAdmin.setVisibility("admin".equals(role) ? View.VISIBLE : View.GONE);
+        }
     }
 }

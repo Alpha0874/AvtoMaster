@@ -3,12 +3,22 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="8dp"
-    android:background="@color/background_dark">
+    android:padding="16dp"
+    android:background="#121212">
 
-    <ListView
-        android:id="@+id/listPendingVerifications"
+    <TextView
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="wrap_content"
+        android:text="Заявки на верификацию"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="#FF9800"
+        android:layout_marginBottom="16dp" />
+
+    <LinearLayout
+        android:id="@+id/verificationContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical" />
 
 </LinearLayout>

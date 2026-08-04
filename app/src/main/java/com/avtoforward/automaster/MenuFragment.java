@@ -1,172 +1,142 @@
-package com.avtoforward.automaster;
+package com.avtoforward.automaster.fragments;
 
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
+import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.widget.SwitchCompat;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
-import com.bumptech.glide.Glide;
-import com.google.android.material.card.MaterialCardView;
+import com.avtoforward.automaster.ActiveOrdersActivity;
+import com.avtoforward.automaster.AdminActivity;
+import com.avtoforward.automaster.EditMasterProfileActivity;
+import com.avtoforward.automaster.ForumActivity;
+import com.avtoforward.automaster.MyOrdersActivity;
+import com.avtoforward.automaster.PocketBaseClient;
+import com.avtoforward.automaster.R;
+import com.avtoforward.automaster.StatisticsActivity;
 import com.google.gson.JsonObject;
+
+import java.util.List;
 
 public class MenuFragment extends Fragment {
 
+    private TextView textWelcome, textNewOrdersCount, textCompletedOrders;
     private SwitchCompat switchAcceptingOrders;
-    private TextView textMasterName, textMasterSpecialty;
-    private ImageView imageAvatar;
-    private View cardAdmin;
+    private Button btnNewOrders, btnMyOrders, btnProfile, btnForum, btnStatistics;
+    private Button btnAdmin;
 
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_menu, container, false);
+        View view = inflater.inflate(R.layout.fragment_home_master, container, false);
 
+        textWelcome = view.findViewById(R.id.textWelcome);
+        textNewOrdersCount = view.findViewById(R.id.textNewOrdersCount);
+        textCompletedOrders = view.findViewById(R.id.textCompletedOrders);
         switchAcceptingOrders = view.findViewById(R.id.switchAcceptingOrders);
-        textMasterName = view.findViewById(R.id.textMasterName);
-        textMasterSpecialty = view.findViewById(R.id.textMasterSpecialty);
-        imageAvatar = view.findViewById(R.id.imageAvatar);
-        cardAdmin = view.findViewById(R.id.cardAdmin);
+        btnNewOrders = view.findViewById(R.id.btnNewOrders);
+        btnMyOrders = view.findViewById(R.id.btnMyOrders);
+        btnProfile = view.findViewById(R.id.btnProfile);
+        btnForum = view.findViewById(R.id.btnForum);
+        btnStatistics = view.findViewById(R.id.btnStatistics);
+        btnAdmin = view.findViewById(R.id.btnAdmin);
 
-        loadProfileInfo();      // загрузит имя, специализацию и аватар
-        loadSwitchState();
-        checkAdminRole();
+        // Загружаем данные (включая проверку роли)
+        loadMasterData();
 
+        // Переключатель приёма заказов
         switchAcceptingOrders.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            updateSwitchColors(isChecked);
             String userId = PocketBaseClient.getCurrentUserId();
-            if (userId == null) {
-                Toast.makeText(getContext(), "Ошибка авторизации", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            new Thread(() -> {
-                boolean success = PocketBaseClient.setAcceptingOrders(userId, isChecked);
-                requireActivity().runOnUiThread(() -> {
-                    if (success) {
-                        Toast.makeText(getContext(), isChecked ? "Приём заказов включён" : "Приём заказов выключен", Toast.LENGTH_SHORT).show();
-                    } else {
-                        Toast.makeText(getContext(), "Ошибка изменения статуса", Toast.LENGTH_SHORT).show();
-                        switchAcceptingOrders.setOnCheckedChangeListener(null);
-                        switchAcceptingOrders.setChecked(!isChecked);
-                        updateSwitchColors(!isChecked);
-                        switchAcceptingOrders.setOnCheckedChangeListener((btn, ch) -> onCheckedChanged(btn, ch));
+            if (userId != null) {
+                new Thread(() -> {
+                    boolean success = PocketBaseClient.setAcceptingOrders(userId, isChecked);
+                    if (!success) {
+                        requireActivity().runOnUiThread(() -> {
+                            switchAcceptingOrders.setChecked(!isChecked);
+                        });
                     }
-                });
-            }).start();
+                }).start();
+            }
         });
 
-        // Обработчики карточек
-        view.findViewById(R.id.cardActiveOrders).setOnClickListener(v ->
-                startActivity(new Intent(getActivity(), ActiveOrdersActivity.class)));
-        view.findViewById(R.id.cardOrders).setOnClickListener(v ->
-                startActivity(new Intent(getActivity(), MyOrdersActivity.class)));
-        view.findViewById(R.id.cardStatistics).setOnClickListener(v ->
-                startActivity(new Intent(getActivity(), StatisticsActivity.class)));
-        view.findViewById(R.id.cardForum).setOnClickListener(v ->
-                startActivity(new Intent(getActivity(), ForumActivity.class)));
-        view.findViewById(R.id.cardSettings).setOnClickListener(v ->
-                startActivity(new Intent(getActivity(), EditMasterProfileActivity.class)));
-        view.findViewById(R.id.cardSupport).setOnClickListener(v ->
-                startActivity(new Intent(getActivity(), SupportActivity.class)));
-        // Кнопка "О приложении" теперь в профиле, поэтому удаляем её с главного экрана
-        view.findViewById(R.id.cardAppHelp).setOnClickListener(v ->
-                startActivity(new Intent(getActivity(), ContributeActivity.class)));
+        // Обработчики кнопок
+        btnNewOrders.setOnClickListener(v -> startActivity(new Intent(getActivity(), ActiveOrdersActivity.class)));
+        btnMyOrders.setOnClickListener(v -> startActivity(new Intent(getActivity(), MyOrdersActivity.class)));
+        btnProfile.setOnClickListener(v -> startActivity(new Intent(getActivity(), EditMasterProfileActivity.class)));
+        btnForum.setOnClickListener(v -> startActivity(new Intent(getActivity(), ForumActivity.class)));
+        btnStatistics.setOnClickListener(v -> startActivity(new Intent(getActivity(), StatisticsActivity.class)));
+
+        // Кнопка администрирования (показывается только для админа)
+        btnAdmin.setOnClickListener(v -> startActivity(new Intent(getActivity(), AdminActivity.class)));
 
         return view;
     }
 
-    private void updateSwitchColors(boolean isChecked) {
-        if (isChecked) {
-            switchAcceptingOrders.setThumbTintList(ContextCompat.getColorStateList(requireContext(), android.R.color.holo_green_light));
-            switchAcceptingOrders.setTrackTintList(ContextCompat.getColorStateList(requireContext(), android.R.color.holo_green_dark));
-        } else {
-            switchAcceptingOrders.setThumbTintList(ContextCompat.getColorStateList(requireContext(), android.R.color.holo_red_light));
-            switchAcceptingOrders.setTrackTintList(ContextCompat.getColorStateList(requireContext(), android.R.color.holo_red_dark));
-        }
-    }
-
-    private void loadProfileInfo() {
-        String userId = PocketBaseClient.getCurrentUserId();
-        if (userId == null) return;
+    private void loadMasterData() {
         new Thread(() -> {
-            JsonObject user = PocketBaseClient.getUserInfo(userId);
-            if (user != null) {
-                String name = user.has("full_name") ? user.get("full_name").getAsString() : "Мастер";
-                String specialty = user.has("master_status") ? user.get("master_status").getAsString() : "Автомастер";
-                String avatarFile = user.has("avatar") && !user.get("avatar").isJsonNull() ? user.get("avatar").getAsString() : null;
-
+            String userId = PocketBaseClient.getCurrentUserId();
+            if (userId == null) {
                 requireActivity().runOnUiThread(() -> {
-                    textMasterName.setText(name);
-                    textMasterSpecialty.setText(specialty);
-                    if (avatarFile != null && !avatarFile.isEmpty()) {
-                        String avatarUrl = PocketBaseClient.getBaseUrl() + "/api/files/users/" + userId + "/" + avatarFile;
-                        Glide.with(requireContext())
-                                .load(avatarUrl)
-                                .circleCrop()
-                                .placeholder(R.drawable.ic_role_master)
-                                .error(R.drawable.ic_role_master)
-                                .into(imageAvatar);
-                    } else {
-                        imageAvatar.setImageResource(R.drawable.ic_role_master);
-                    }
+                    btnAdmin.setVisibility(View.GONE);
                 });
+                return;
             }
-        }).start();
-    }
 
-    private void loadSwitchState() {
-        String userId = PocketBaseClient.getCurrentUserId();
-        if (userId == null) return;
-        new Thread(() -> {
-            boolean accepting = PocketBaseClient.isAcceptingOrders(userId);
+            JsonObject user = PocketBaseClient.getUserInfo(userId);
+            if (user == null) {
+                requireActivity().runOnUiThread(() -> {
+                    btnAdmin.setVisibility(View.GONE);
+                });
+                return;
+            }
+
+            // Получаем роль
+            String role = user.has("role") && !user.get("role").isJsonNull()
+                    ? user.get("role").getAsString()
+                    : "user";
+
+            String fullName = user.has("full_name") && !user.get("full_name").isJsonNull()
+                    ? user.get("full_name").getAsString()
+                    : "Мастер";
+            String nickname = user.has("nickname") && !user.get("nickname").isJsonNull()
+                    ? user.get("nickname").getAsString()
+                    : "";
+
+            boolean accepting = "yes".equals(user.get("accepting_orders").getAsString());
+
+            List<com.avtoforward.automaster.Order> newOrders = PocketBaseClient.getNewOrders();
+            int newOrdersCount = newOrders.size();
+
+            List<com.avtoforward.automaster.Order> completedOrders = PocketBaseClient.getCompletedOrders(userId);
+            int completedCount = completedOrders.size();
+
+            boolean isAdmin = "admin".equals(role);
+
             requireActivity().runOnUiThread(() -> {
-                switchAcceptingOrders.setOnCheckedChangeListener(null);
+                String displayName = fullName.isEmpty() ? nickname : fullName;
+                textWelcome.setText("Здравствуйте, " + displayName + "!");
+                textNewOrdersCount.setText("Новых заказов: " + newOrdersCount);
+                textCompletedOrders.setText("✅ Выполнено заказов: " + completedCount);
                 switchAcceptingOrders.setChecked(accepting);
-                updateSwitchColors(accepting);
-                switchAcceptingOrders.setOnCheckedChangeListener((btn, ch) -> onCheckedChanged(btn, ch));
-            });
-        }).start();
-    }
 
-    private void checkAdminRole() {
-        new Thread(() -> {
-            String role = PocketBaseClient.getUserRole();
-            requireActivity().runOnUiThread(() -> {
-                if ("admin".equals(role)) {
-                    cardAdmin.setVisibility(View.VISIBLE);
-                    cardAdmin.setOnClickListener(v ->
-                            startActivity(new Intent(getActivity(), AdminActivity.class)));
+                // Показываем кнопку администрирования только если роль admin
+                if (isAdmin) {
+                    btnAdmin.setVisibility(View.VISIBLE);
                 } else {
-                    cardAdmin.setVisibility(View.GONE);
+                    btnAdmin.setVisibility(View.GONE);
                 }
             });
         }).start();
     }
 
-    private void onCheckedChanged(android.widget.CompoundButton buttonView, boolean isChecked) {
-        String userId = PocketBaseClient.getCurrentUserId();
-        if (userId == null) return;
-        new Thread(() -> {
-            boolean success = PocketBaseClient.setAcceptingOrders(userId, isChecked);
-            requireActivity().runOnUiThread(() -> {
-                if (success) {
-                    updateSwitchColors(isChecked);
-                } else {
-                    Toast.makeText(getContext(), "Ошибка изменения статуса", Toast.LENGTH_SHORT).show();
-                    buttonView.setOnCheckedChangeListener(null);
-                    buttonView.setChecked(!isChecked);
-                    updateSwitchColors(!isChecked);
-                    buttonView.setOnCheckedChangeListener(this::onCheckedChanged);
-                }
-            });
-        }).start();
+    @Override
+    public void onResume() {
+        super.onResume();
+        loadMasterData(); // Обновляем данные при возврате на фрагмент
     }
 }

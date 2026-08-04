@@ -3,14 +3,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#121212"
-    android:padding="16dp"
-    android:fillViewport="true">
+    android:fillViewport="true"
+    android:padding="16dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center_horizontal">
+        android:orientation="vertical">
 
         <!-- Приветствие -->
         <TextView
@@ -60,7 +59,7 @@
                 android:trackTint="#555555" />
         </LinearLayout>
 
-        <!-- Быстрые кнопки -->
+        <!-- Кнопки "Новые заказы" и "Мои заказы" -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -100,7 +99,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Форум"
-                android:backgroundTint="#FF9800"
+                android:backgroundTint="#2A2A2A"
                 android:textColor="#FFFFFF"
                 android:layout_marginEnd="8dp" />
 
@@ -114,7 +113,7 @@
                 android:textColor="#FFFFFF" />
         </LinearLayout>
 
-        <!-- Кнопка "Профиль" (оставляем) -->
+        <!-- Кнопка "Профиль" -->
         <Button
             android:id="@+id/btnProfile"
             android:layout_width="match_parent"
@@ -123,6 +122,17 @@
             android:backgroundTint="#2A2A2A"
             android:textColor="#FFFFFF"
             android:layout_marginBottom="16dp" />
+
+        <!-- Кнопка "Администрирование" (видна только админу) -->
+        <Button
+            android:id="@+id/btnAdmin"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Администрирование"
+            android:backgroundTint="#D32F2F"
+            android:textColor="#FFFFFF"
+            android:layout_marginBottom="16dp"
+            android:visibility="gone" />
 
         <!-- Статистика выполненных заказов -->
         <TextView
